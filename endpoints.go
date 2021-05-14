@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"sophoscentral/pagination"
 )
 
 func (c *Client) GetEndpoints(ctx context.Context, tenantID string, geoURL string, queryParams map[string]string) (Endpoints, error){
@@ -41,9 +40,9 @@ reqURL := fmt.Sprintf("%s/endpoint/v1/endpoints", geoURL)
 	}
 
 	if endpoints.Pages.Total > endpoints.Pages.Current{
-		pf, err := pagination.NewPaginationFields(ctx, c.httpClient, req, endpoints.Pages)
+		pf, err := NewPaginationFields(ctx, c.httpClient, req, endpoints.Pages)
 		if err == nil {
-			allPagesBytes, err := pagination.GetRemainingPages(pf)
+			allPagesBytes, err := GetRemainingPages(pf)
 			if err == nil {
 				endpoints = collectEndpoints(allPagesBytes,endpoints)
 			} else {

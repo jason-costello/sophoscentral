@@ -1,4 +1,4 @@
-package pagination
+package sophoscentral
 
 import (
 	"bytes"
@@ -8,17 +8,16 @@ import (
 	"math"
 	"net/http"
 	"net/url"
-	"sophoscentral"
 	"strconv"
 )
 type Fields struct{
-	ctx context.Context
-	httpClient *http.Client
+	ctx                   context.Context
+	httpClient            *http.Client
 	lastSuccessfulRequest *http.Request
-	pages sophoscentral.Pages
+	pages                 Pages
 }
 
-func NewPaginationFields(ctx context.Context, httpClient *http.Client, lastRequest *http.Request, pages sophoscentral.Pages) (Fields, error) {
+func NewPaginationFields(ctx context.Context, httpClient *http.Client, lastRequest *http.Request, pages Pages) (Fields, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -93,7 +92,7 @@ func  GetRemainingPages(pf Fields) ([][]byte, error) {
 
 				case <-done:
 					return
-				case byteStream <- sophoscentral.MustMakeRequest(pf.httpClient, req):
+				case byteStream <- MustMakeRequest(pf.httpClient, req):
 				}
 			}
 		}()
@@ -115,7 +114,7 @@ func  GetRemainingPages(pf Fields) ([][]byte, error) {
 
 return pageBytes, nil
 }
-func extractAllURLs(currentURL string, p sophoscentral.Pages) []string{
+func extractAllURLs(currentURL string, p Pages) []string{
 
 	if currentURL == ""{
 		return nil

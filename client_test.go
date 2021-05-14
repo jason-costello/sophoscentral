@@ -3,9 +3,9 @@ package sophoscentral
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
