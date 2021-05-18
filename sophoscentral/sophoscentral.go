@@ -1,6 +1,7 @@
 //go:generate go run gen-accessors.go
 //go:generate go run gen-stringify-test.go
 package sophoscentral
+
 // design influenced by https://github.com/google/go-github
 
 import (
@@ -22,89 +23,83 @@ import (
 	"time"
 )
 
-const(
-defaultBaseURL = "https://api.central.sophos.com/"
-userAgent = "rax-sophoscentral"
-
+const (
+	defaultBaseURL = "https://api.central.sophos.com/"
+	userAgent      = "rax-sophoscentral"
 )
+
 var errNonNilContext = errors.New("context must be non-nil")
 
 // Client manages communcation with the Sophos Central Api
-type Client struct{
+type Client struct {
 	Token *oauth2.Token
 
 	client *http.Client
 
-	BaseURL *url.URL
+	BaseURL   *url.URL
 	UserAgent string
-	common service
+	common    service
 	// Services used to interact with different parts of Sophos Central api
 
-	Common *CommonService
-	Endpoints *EndpointService
+	Common       *CommonService
+	Endpoints    *EndpointService
 	LiveDiscover *LiveDiscoverService
 	Organization *OrganizationService
-	Partner *PartnerService
-	WhoAmI *WhoAmIService
-
+	Partner      *PartnerService
+	WhoAmI       *WhoAmIService
 }
 
-type service struct{
+type service struct {
 	client *Client
 }
 
 // ListByPageOffset specifies the parameters to methods that support pagination by page offset value
-type ListByPageOffset struct{
-Page int `url:"page,omitempty"`
-PageSize int `url:"pageSize,omitempty"`
-PageTotal int `url:"pageTotal,omitempty"`
+type ListByPageOffset struct {
+	Page      int `url:"page,omitempty"`
+	PageSize  int `url:"pageSize,omitempty"`
+	PageTotal int `url:"pageTotal,omitempty"`
 }
 
 // ListByFromKeyOptions specifies the parameters to methods that support pagination by from-key value
-type ListByFromKeyOptions struct{
+type ListByFromKeyOptions struct {
 	PageFromKey string `url:"pageFromKey,omitempty"`
-	PageSize int `url:"pageSize,omitempty"`
-	PageTotal bool `url:"pageTotal,omitempty"`
+	PageSize    int    `url:"pageSize,omitempty"`
+	PageTotal   bool   `url:"pageTotal,omitempty"`
 }
 
-
-type PagesByOffset struct{
+type PagesByOffset struct {
 	Current *int `json:"current,omitempty"`
-	Size *int `json:"size,omitempty"`
-	Total *int `json:"total,omitempty"`
-	Items *int `json:"items,omitempty"`
+	Size    *int `json:"size,omitempty"`
+	Total   *int `json:"total,omitempty"`
+	Items   *int `json:"items,omitempty"`
 	MaxSize *int `json:"maxSize,omitempty"`
-
 }
 type PagesByFromKey struct {
-		FromKey *string `json:"fromKey,omitempty"`
-		NextKey *string `json:"nextKey,omitempty"`
-		Size    *int    `json:"size,omitempty"`
-		Total   *int    `json:"total,omitempty"`
-		Items   *int    `json:"items,omitempty"`
-		MaxSize *int    `json:"maxSize,omitempty"`
-	}
+	FromKey *string `json:"fromKey,omitempty"`
+	NextKey *string `json:"nextKey,omitempty"`
+	Size    *int    `json:"size,omitempty"`
+	Total   *int    `json:"total,omitempty"`
+	Items   *int    `json:"items,omitempty"`
+	MaxSize *int    `json:"maxSize,omitempty"`
+}
 
-
-func DecodePageKey(encodedKey string) string{
-
+func DecodePageKey(encodedKey string) string {
 
 	decodeString, err := base64.StdEncoding.DecodeString(encodedKey) // to []byte
-	if err!=nil || decodeString == nil{
+	if err != nil || decodeString == nil {
 		return ""
 	}
 	key := string(decodeString)
 	if key[0] == '[' {
 		key = key[1:]
 	}
-	if key[len(key)-1] == ']'{
+	if key[len(key)-1] == ']' {
 		key = key[:len(key)-1]
 	}
 	return key
 
-
-
 }
+
 // addOptions adds the parameters in opts as URL query parameters to s. opts
 // must be a struct whose fields may contain "url" tags.
 func addOptions(s string, opts interface{}) (string, error) {
@@ -127,15 +122,13 @@ func addOptions(s string, opts interface{}) (string, error) {
 	return u.String(), nil
 }
 
-
 // NewClient returns a new Sophos Central API client. If a nil httpClient is
 // provided, a new http.Client will be used. To use API methods which require
 // authentication, provide an http.Client that will perform the authentication
 // for you (such as that provided by the golang.org/x/oauth2 library).
 func NewClient(ctx context.Context, hc *http.Client, token *oauth2.Token) *Client {
 
-
-	if ctx == nil{
+	if ctx == nil {
 		ctx = context.Background()
 	}
 
@@ -152,7 +145,6 @@ func NewClient(ctx context.Context, hc *http.Client, token *oauth2.Token) *Clien
 
 	return c
 }
-
 
 // NewRequest creates an API request. A relative URL can be provided in urlStr,
 // in which case it is resolved relative to the BaseURL of the Client.
@@ -193,6 +185,7 @@ func (c *Client) NewRequest(method, urlStr string, body interface{}) (*http.Requ
 
 	return req, nil
 }
+
 // Response is a GitHub API response. This wraps the standard http.Response
 // returned from GitHub and provides convenient access to things like
 // pagination links.
@@ -223,9 +216,8 @@ type Response struct {
 	// To use this token, set ListByFromKeyOptions.Page to this value before
 	// calling the endpoint again.
 	NextPageToken string
-
-
 }
+
 // newResponse creates a new Response for the provided http.Response.
 // r must not be nil.
 func newResponse(r *http.Response) *Response {
@@ -300,7 +292,6 @@ func (c *Client) BareDo(ctx context.Context, req *http.Request) (*Response, erro
 	}
 	req = withContext(ctx, req)
 
-
 	resp, err := c.client.Do(req)
 	if err != nil {
 		// If we got an error, and the context has been canceled,
@@ -324,7 +315,6 @@ func (c *Client) BareDo(ctx context.Context, req *http.Request) (*Response, erro
 
 	response := newResponse(resp)
 
-
 	err = CheckResponse(resp)
 	if err != nil {
 		defer resp.Body.Close()
@@ -346,14 +336,13 @@ func (c *Client) BareDo(ctx context.Context, req *http.Request) (*Response, erro
 	return response, err
 }
 
-
 // Do - The provided ctx must be non-nil, if it is nil an error is returned. If it
 // is canceled or times out, ctx.Err() will be returned.
 func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*Response, error) {
 	resp, err := c.BareDo(ctx, req)
 	if err != nil {
 
-		if err.Error() == "Unauthorized"{
+		if err.Error() == "Unauthorized" {
 		} else {
 			return resp, err
 		}
@@ -374,8 +363,6 @@ func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*Res
 		}
 	}
 
-
-
 	return resp, err
 }
 
@@ -393,21 +380,19 @@ func compareHttpResponse(r1, r2 *http.Response) bool {
 	return false
 }
 
-
-
 /*
 An ErrorResponse reports one or more errors caused by an API request.
 Sophos Central API docs: https://developer.sophos.com/intro (search page for 'Error response object')
 */
 type ErrorResponse struct {
-	Response *http.Response
-	Errors         string    `json:"error,omitempty"`
-	Message       string    `json:"message,omitempty"`
-	CorrelationId string    `json:"correlationId,omitempty"`
-	Code          string    `json:"code,omitempty"`
-	CreatedAt     time.Time `json:"createdAt,omitempty"`
-	RequestId     string    `json:"requestId,omitempty"`
-	DocumentationURL        string    `json:"docUrl,omitempty"`
+	Response         *http.Response
+	Errors           string    `json:"error,omitempty"`
+	Message          string    `json:"message,omitempty"`
+	CorrelationId    string    `json:"correlationId,omitempty"`
+	Code             string    `json:"code,omitempty"`
+	CreatedAt        time.Time `json:"createdAt,omitempty"`
+	RequestId        string    `json:"requestId,omitempty"`
+	DocumentationURL string    `json:"docUrl,omitempty"`
 }
 
 func (r *ErrorResponse) Error() string {
@@ -415,7 +400,6 @@ func (r *ErrorResponse) Error() string {
 		r.Response.Request.Method, sanitizeURL(r.Response.Request.URL),
 		r.Response.StatusCode, r.Message, r.Errors)
 }
-
 
 // Is returns whether the provided error equals this error.
 func (r *ErrorResponse) Is(target error) bool {
@@ -439,11 +423,8 @@ func (r *ErrorResponse) Is(target error) bool {
 		}
 	}
 
-
-
 	return true
 }
-
 
 // TwoFactorAuthError occurs when using HTTP Basic Authentication for a user
 // that has two-factor authentication enabled. The request can be reattempted
@@ -463,7 +444,7 @@ type RateLimitError struct {
 func (r *RateLimitError) Error() string {
 	return fmt.Sprintf("%v %v: %d %v %v",
 		r.Response.Request.Method, sanitizeURL(r.Response.Request.URL),
-	r.Response.StatusCode, r.Message, formatRateReset(time.Until(r.Rate.Reset.Time)))
+		r.Response.StatusCode, r.Message, formatRateReset(time.Until(r.Rate.Reset.Time)))
 }
 
 // Is returns whether the provided error equals this error.
@@ -488,10 +469,10 @@ type AcceptedError struct {
 	// Raw contains the response body.
 	Raw []byte
 }
+
 func withContext(ctx context.Context, req *http.Request) *http.Request {
 	return req.WithContext(ctx)
 }
-
 
 func (*AcceptedError) Error() string {
 	return "job scheduled on GitHub side; try again later"
@@ -606,9 +587,9 @@ func CheckResponse(r *http.Response) error {
 			Message:  errorResponse.Message,
 		}
 
-			retryAfterSeconds :=  getRandIntBetween(100, 750) // Error handling is noop.
-			retryAfter := time.Duration(retryAfterSeconds) * time.Millisecond
-			abuseRateLimitError.RetryAfter = &retryAfter
+		retryAfterSeconds := getRandIntBetween(100, 750) // Error handling is noop.
+		retryAfter := time.Duration(retryAfterSeconds) * time.Millisecond
+		abuseRateLimitError.RetryAfter = &retryAfter
 
 		return abuseRateLimitError
 
@@ -616,16 +597,18 @@ func CheckResponse(r *http.Response) error {
 		return errorResponse
 	}
 }
+
 // setRandomTimeout generates a random value between 100 and 750 milliseconds to wait until available for retry
 // if error is generated for some reason when generating random value a default of 500 ms is used.
 func getRandIntBetween(min, max int) int {
-var delay = 0
+	var delay = 0
 	for delay < min {
 		delay = rand.Intn(max)
 	}
 
 	return delay
 }
+
 // parseBoolResponse determines the boolean result from a GitHub API response.
 // Several GitHub API methods return boolean responses indicated by the HTTP
 // status code in the response (true indicated by a 204, false indicated by a
@@ -660,11 +643,11 @@ type Rate struct {
 func (r Rate) String() string {
 	return Stringify(r)
 }
+
 //
 // RateLimits represents the rate limits for the current client.
 type RateLimits struct {
 	Core *Rate `json:"core"`
-
 }
 
 func (r RateLimits) String() string {
@@ -718,9 +701,6 @@ func (r RateLimits) String() string {
 //
 //	return response.Resources, resp, nil
 //}
-
-
-
 
 // formatRateReset formats d to look like "[rate reset in 2s]" or
 // "[rate reset in 87m02s]" for the positive durations. And like "[rate limit was reset 87m02s ago]"

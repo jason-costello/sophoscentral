@@ -27,7 +27,7 @@ func setup() (client *Client, mux *http.ServeMux, serverURL string, teardown fun
 	// specified as absolute rather than relative. It only makes a difference
 	// when there's a non-empty base URL path. So, use that. See issue #752.
 	apiHandler := http.NewServeMux()
-	apiHandler.Handle(serverURL +"something/", http.StripPrefix(serverURL, mux))
+	apiHandler.Handle(serverURL+"something/", http.StripPrefix(serverURL, mux))
 	apiHandler.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 		fmt.Fprintln(os.Stderr, "FAIL: Client.BaseURL path prefix is not preserved in the request URL:")
 		fmt.Fprintln(os.Stderr)
@@ -48,6 +48,7 @@ func setup() (client *Client, mux *http.ServeMux, serverURL string, teardown fun
 
 	return client, mux, server.URL, server.Close
 }
+
 // openTestFile creates a new file with the given name and content for testing.
 // In order to ensure the exact file name, this function will create a new temp
 // directory, and create the file in that directory. It is the caller's
@@ -163,9 +164,6 @@ func testBadOptions(t *testing.T, methodName string, f func() error) {
 	}
 }
 
-
-
-
 func TestNewClient(t *testing.T) {
 	c := NewClient(nil, http.DefaultClient, nil)
 
@@ -183,12 +181,8 @@ func TestNewClient(t *testing.T) {
 	}
 }
 
-
-
-
-
 func TestNewRequest_invalidJSON(t *testing.T) {
-	c := NewClient(nil,nil,nil)
+	c := NewClient(nil, nil, nil)
 
 	type T struct {
 		A map[interface{}]interface{}
@@ -204,13 +198,13 @@ func TestNewRequest_invalidJSON(t *testing.T) {
 }
 
 func TestNewRequest_badURL(t *testing.T) {
-	c := NewClient(nil,nil,nil)
+	c := NewClient(nil, nil, nil)
 	_, err := c.NewRequest("GET", ":", nil)
 	testURLParseError(t, err)
 }
 
 func TestNewRequest_badMethod(t *testing.T) {
-	c := NewClient(nil,nil,nil)
+	c := NewClient(nil, nil, nil)
 	if _, err := c.NewRequest("BOGUS\nMETHOD", ".", nil); err == nil {
 		t.Fatal("NewRequest returned nil; expected error")
 	}
@@ -219,7 +213,7 @@ func TestNewRequest_badMethod(t *testing.T) {
 // ensure that no User-Agent header is set if the client's UserAgent is empty.
 // This caused a problem with Google's internal http client.
 func TestNewRequest_emptyUserAgent(t *testing.T) {
-	c := NewClient(nil,nil,nil)
+	c := NewClient(nil, nil, nil)
 	c.UserAgent = ""
 	req, err := c.NewRequest("GET", ".", nil)
 	if err != nil {
@@ -237,7 +231,7 @@ func TestNewRequest_emptyUserAgent(t *testing.T) {
 // certain cases, intermediate systems may treat these differently resulting in
 // subtle errors.
 func TestNewRequest_emptyBody(t *testing.T) {
-	c := NewClient(nil,nil,nil)
+	c := NewClient(nil, nil, nil)
 	req, err := c.NewRequest("GET", ".", nil)
 	if err != nil {
 		t.Fatalf("NewRequest returned unexpected error: %v", err)
@@ -255,7 +249,7 @@ func TestNewRequest_errorForNoTrailingSlash(t *testing.T) {
 		{rawurl: "https://example.com/api/v3", wantError: true},
 		{rawurl: "https://example.com/api/v3/", wantError: false},
 	}
-	c := NewClient(nil,nil,nil)
+	c := NewClient(nil, nil, nil)
 	for _, test := range tests {
 		u, err := url.Parse(test.rawurl)
 		if err != nil {
@@ -269,8 +263,6 @@ func TestNewRequest_errorForNoTrailingSlash(t *testing.T) {
 		}
 	}
 }
-
-
 
 //
 //func TestDo(t *testing.T) {
@@ -333,9 +325,6 @@ func TestDo_nilContext(t *testing.T) {
 //	}
 //}
 
-
-
-
 //func TestDo_noContent(t *testing.T) {
 //	client, mux, _, teardown := setup()
 //	defer teardown()
@@ -377,7 +366,7 @@ func TestCheckResponse(t *testing.T) {
 	res := &http.Response{
 		Request:    &http.Request{},
 		StatusCode: http.StatusBadRequest,
-		Body: ioutil.NopCloser(strings.NewReader(`{"message":"m"}`)),
+		Body:       ioutil.NopCloser(strings.NewReader(`{"message":"m"}`)),
 	}
 	err := CheckResponse(res).(*ErrorResponse)
 
@@ -393,7 +382,6 @@ func TestCheckResponse(t *testing.T) {
 		t.Errorf("Error = %#v, want %#v", err, want)
 	}
 }
-
 
 func TestCompareHttpResponse(t *testing.T) {
 	testcases := map[string]struct {
@@ -429,7 +417,6 @@ func TestCompareHttpResponse(t *testing.T) {
 		})
 	}
 }
-
 
 // ensure that we properly handle API errors that do not contain a response body
 func TestCheckResponse_noBody(t *testing.T) {
@@ -468,7 +455,7 @@ func TestCheckResponse_unexpectedErrorStructure(t *testing.T) {
 	want := &ErrorResponse{
 		Response: res,
 		Message:  "m",
-		Errors:  "",
+		Errors:   "",
 	}
 	if !errors.Is(err, want) {
 		t.Errorf("Error = %#v, want %#v", err, want)
@@ -481,8 +468,6 @@ func TestCheckResponse_unexpectedErrorStructure(t *testing.T) {
 		t.Errorf("ErrorResponse.Response.Body = %q, want %q", got, httpBody)
 	}
 }
-
-
 
 func TestErrorResponse_Error(t *testing.T) {
 	res := &http.Response{Request: &http.Request{}}
@@ -498,8 +483,6 @@ func TestError_Error(t *testing.T) {
 		t.Errorf("Expected non-empty Error.Error()")
 	}
 }
-
-
 
 func TestFormatRateReset(t *testing.T) {
 	d := 120*time.Minute + 12*time.Second
@@ -537,8 +520,6 @@ func TestFormatRateReset(t *testing.T) {
 		t.Errorf("Format is wrong. got: %v, want: %v", got, want)
 	}
 }
-
-
 
 func TestRateLimitError(t *testing.T) {
 	u, err := url.Parse("https://example.com")

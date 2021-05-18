@@ -12,6 +12,7 @@ import (
 	"sophoscentral/sophoscentral"
 	"strings"
 )
+
 var (
 	client *github.Client
 
@@ -21,6 +22,7 @@ var (
 
 	skipURLs = flag.Bool("skip_urls", false, "skip url fields")
 )
+
 func main() {
 	flag.Parse()
 
@@ -44,8 +46,6 @@ func main() {
 
 		//{"rate_limit", &github.RateLimits{}},
 		{"endpoint/v1/endpoints", &sophoscentral.Endpoints{}},
-
-
 	} {
 		err := testType(tt.url, tt.typ)
 		if err != nil {
@@ -53,6 +53,7 @@ func main() {
 		}
 	}
 }
+
 // testType fetches the JSON resource at urlStr and compares its keys to the
 // struct fields of typ.
 func testType(urlStr string, typ interface{}) error {

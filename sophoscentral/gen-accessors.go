@@ -32,7 +32,6 @@
 //(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 //OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
 // gen-accessors generates accessor methods for structs with pointer fields.
 //
 // It is meant to be used by sophoscentral contributors in conjunction with the
