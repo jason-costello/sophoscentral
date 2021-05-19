@@ -186,7 +186,7 @@ func (c *Client) NewRequest(method, urlStr string, body interface{}) (*http.Requ
 	return req, nil
 }
 
-// Response is a GitHub API response. This wraps the standard http.Response
+// Response is a SophosCentral API response. This wraps the standard http.Response
 // returned from GitHub and provides convenient access to things like
 // pagination links.
 type Response struct {
@@ -217,6 +217,7 @@ type Response struct {
 	// calling the endpoint again.
 	NextPageToken string
 }
+
 
 // newResponse creates a new Response for the provided http.Response.
 // r must not be nil.
@@ -291,6 +292,8 @@ func (c *Client) BareDo(ctx context.Context, req *http.Request) (*Response, erro
 		return nil, errNonNilContext
 	}
 	req = withContext(ctx, req)
+
+
 
 	resp, err := c.client.Do(req)
 	if err != nil {
