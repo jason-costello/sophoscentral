@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
+	"time"
 
 	"net/url"
 )
@@ -17,7 +18,7 @@ type EndpointService service
 // Endpoints contains the returned data from the EndpointsService.List
 type Endpoints struct {
 	// Item - slice of endpoints
-	Item []Item `json:"items"`
+	Items []Item `json:"items"`
 	// Pages - Data returned to allow pagination
 	// Endpoints utilizes Page-By-Key
 	Pages *PagesByFromKey `json:"pages"`
@@ -30,22 +31,23 @@ type Item struct {
 	// Type - type of endpoint
 	// The following values are allowed
 	// computer, server, securityVM
-	Type                    *string           `json:"type"`
-	Tenant                  *TenantEP         `json:"tenant"`
-	Hostname                *string           `json:"hostname"`
+	Type                    *string           `json:"type,omitempty"`
+	Tenant                  *TenantEP         `json:"tenant,omitempty"`
+	Hostname                *string           `json:"hostname,omitempty"`
 	Health                  *Health           `json:"health,omitempty"`
-	OS                      *OS               `json:"os"`
-	Ipv4Addresses           []string          `json:"ipv4Addresses"`
+	OS                      *OS               `json:"os,omitempty"`
+	Ipv4Addresses           []string         `json:"ipv4Addresses,omitempty"`
 	Ipv6Addresses           []string          `json:"ipv6Addresses,omitempty"`
 	MACAddresses            []string          `json:"macAddresses,omitempty"`
-	Group                   *Group            `json:"group"`
+	Group                   *Group            `json:"group,omitempty"`
 	AssociatedPerson        *AssociatedPerson `json:"associatedPerson,omitempty"`
 	TamperProtectionEnabled *bool             `json:"tamperProtectionEnabled,omitempty"`
 	AssignedProducts        []AssignedProduct `json:"assignedProducts,omitempty"`
-	LastSeenAt              *string           `json:"lastSeenAt"`
-	Encryption              *EncryptionEP     `json:"encryption"`
+	LastSeenAt              *string           `json:"lastSeenAt,omitempty"`
+	Encryption              *EncryptionEP     `json:"encryption,omitempty"`
 	Lockdown                *Lockdown         `json:"lockdown,omitempty"`
 }
+
 type Pages struct{}
 
 type IsolationStatus string
@@ -298,20 +300,26 @@ func (e *EndpointService) List(ctx context.Context, tenantID, tenantURL string, 
 		return nil, nil, errors.New("invalid tenant url")
 	}
 
-	tURL, err := addOptions(tenantURL, opts)
-	if err != nil {
-		return nil, nil, err
-	}
+	//tURL, err := addOptions(tenantURL, opts)
+	//if err != nil {
+	//	return nil, nil, err
+	//}
 
 	var responses []*Response
 
-	req, err := e.client.NewRequest("GET", tURL, nil)
+	req, err := e.client.NewRequest("GET", "endpoint/v1/endpoints", nil)
 	if err != nil {
 		return nil, nil, err
 	}
+
+
+	//req, err := e.client.NewRequest("GET", tURL, nil)
+	//if err != nil {
+	//	return nil, nil, err
+	//}
 	var eps Endpoints
 
-	e.client.common.client.Token.SetAuthHeader(req)
+	//e.client.common.client.Token.SetAuthHeader(req)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Tenant-ID", tenantID)
 	resp, err := e.client.Do(ctx, req, &eps)
@@ -320,7 +328,7 @@ func (e *EndpointService) List(ctx context.Context, tenantID, tenantURL string, 
 	}
 	responses = append(responses, resp)
 
-	endpoints.Item = append(endpoints.Item, eps.Item...)
+	endpoints.Items = append(endpoints.Items, eps.Items...)
 	endpoints.Pages = eps.Pages
 
 	if eps.Pages.GetNextKey() != "" {
@@ -334,7 +342,15 @@ func (e *EndpointService) List(ctx context.Context, tenantID, tenantURL string, 
 			},
 		}
 
-		return e.List(ctx, tenantID, tenantURL, endpoints, opts)
+		rep, res, err := e.List(ctx, tenantID, tenantURL, endpoints, opts)
+			if resp.StatusCode == 429{
+				time.Sleep(1 *time.Second)
+				return e.List(ctx, tenantID, tenantURL, endpoints, opts)
+			}
+		return rep, res, err
+
+
+
 
 	}
 
@@ -346,7 +362,23 @@ func (e *EndpointService) List(ctx context.Context, tenantID, tenantURL string, 
 // https://developer.sophos.com/docs/endpoint-v1/1/routes/endpoints/%7BendpointId%7D/get
 // https://api-{dataRegion}.central.sophos.com/endpoint/v1/endpoints/{endpointId}
 func (e *EndpointService) Get(ctx context.Context, tenantID, tenantURL, endpointID string) (*Item, *Response, error) {
-	u := fmt.Sprintf("%s/endpoint/v1/endpoints/%s", tenantURL, endpointID)
+
+		//tURL, err := url.Parse(tenantURL)
+		//if err != nil{
+		//	return nil, nil, err
+		//}
+		//e.client.BaseURL = tURL
+	u := fmt.Sprintf("endpoint/v1/endpoints/%s", endpointID)
+
+	if e == nil{
+		return nil, nil, errors.New("nil ep client")
+	}
+	if e.client == nil{
+
+		return nil, nil, errors.New("nil  client")
+
+	}
+
 
 	req, err := e.client.NewRequest("GET", u, nil)
 	if err != nil {

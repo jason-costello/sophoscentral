@@ -1,130 +1,382 @@
+// +build !integration
+
 package sophoscentral
 
-//import (
-//	"context"
-//	"fmt"
-//	"github.com/stretchr/testify/assert"
-//	"golang.org/x/oauth2"
-//	"golang.org/x/oauth2/clientcredentials"
-//	"net/http"
-//	"net/url"
-//	"reflect"
-//	"testing"
-//)
-//func GetAuthToken(ctx context.Context, clientID, clientSecret, tokenURL string) (*oauth2.Token, error) {
-//	config := &clientcredentials.Config{
-//		ClientID:       clientID,
-//		ClientSecret:   clientSecret,
-//		Scopes:         []string{"token"},
-//		TokenURL:       tokenURL,
-//		EndpointParams: url.Values{},
-//	}
-//
-//
-//	return config.TokenSource(ctx).Token()
-//}
-//
-//func TestEndpointService_List(t *testing.T) {
-//	a := assert.New(t)
-//	ctx := context.Background()
+import (
+	"context"
+	"github.com/stretchr/testify/assert"
+	"net/http"
+	"testing"
+)
 
-//	authToken, err := GetAuthToken(ctx, cidResult, csResult, "https://id.sophos.com/api/v2/oauth2/token" )
-//	a.NoError(err)
-//	a.NotEmpty(authToken)
-//
-//	oauthConfig := oauth2.Config{
+func TestEndpointService_List(t *testing.T) {
+	client, mux, _, teardown := setup()
+	defer teardown()
 
-//		Endpoint:     oauth2.Endpoint{
-//			TokenURL:  "https://id.sophos.com/api/v2/oauth2/token",
-//			AuthStyle:	oauth2.AuthStyleInParams,
-//		},
-//		Scopes:       []string{"token"},
-//	}
-//
-//	httpClient := oauthConfig.Client(ctx, authToken)
-//
-//	client := NewClient(ctx, httpClient, authToken)
-//
-//	type args struct {
-//		ctx       context.Context
-//		tenantID  string
-//		tenantURL string
-//		opts      EndpointListOptions
-//	}
-//	tests := []struct {
-//		name    string
-//		e       *EndpointService
-//		args    args
-//		want    *Endpoints
-//		want1   []*Response
-//		wantErr bool
-//	}{
-//		{
-//			name: "one",
-//			e: 	client.Endpoints,
-//			args: args{
-//				ctx:       context.Background(),
-//				tenantID:  "b9b62247-783c-4e59-93c8-8adaaa53c7b1",
-//				tenantURL: "https://api-us03.central.sophos.com/endpoint/v1/endpoints",
-//				opts:      EndpointListOptions{
-//					HealthStatus:      "",
-//					Type:              "",
-//					ListByFromKeyOptions: ListByFromKeyOptions{
-//						PageFromKey: "",
-//						PageSize:    500,
-//						PageTotal: true  ,
-//					},
-//				},
-//			},
-//			want: &Endpoints{},
-//			wantErr: false,
-//		},
-//	}
-//	for _, tt := range tests {
-//		t.Run(tt.name, func(t *testing.T) {
-//			got, _, err := tt.e.List(tt.args.ctx, tt.args.tenantID, tt.args.tenantURL, &Endpoints{}, tt.args.opts)
-//			if (err != nil) != tt.wantErr {
-//				t.Errorf("List() error = %v, wantErr %v", err, tt.wantErr)
-//				return
-//			}
-//			a.NotNil(got.Item)
-//			a.NotEmpty(got.Item)
-//
-//		})
-//	}
-//}
-//
-//func TestEndpointService_Get(t *testing.T) {
-//	client, mux, _, teardown := setup()
-//	defer teardown()
-//
-//	mux.HandleFunc("/endpoints", func(w http.ResponseWriter, r *http.Request) {
-//		testMethod(t, r, "GET")
-//		fmt.Fprint(w, `[{"id":1},{"id":2}]`)
-//	})
-//
-//	ctx := context.Background()
-//	got, _, err := client.Endpoints.List(ctx, "xxxx", "tenanturl", &Endpoints{}, EndpointListOptions{})
-//	if err != nil {
-//		t.Errorf("Repositories.List returned error: %v", err)
-//	}
-//
-//	want := []*Item{{ID: String("1")}, {ID: String("2")}}
-//	if !reflect.DeepEqual(got, want) {
-//		t.Errorf("Repositories.List returned %+v, want %+v", got, want)
-//	}
-//
-//	const methodName = "List"
-//	testBadOptions(t, methodName, func() (err error) {
-//		_, _, err = client.Endpoints.List(ctx, "\n", "\n", nil, EndpointListOptions{})
-//		return err
-//	})
-//
-//	testNewRequestAndDoFailure(t, methodName, client, func() (*Response, error) {
-//		got, resp, err := client.Endpoints.List(ctx, "\n", "\n", nil, EndpointListOptions{})
-//		if got != nil {
-//			t.Errorf("testNewRequestAndDoFailure %v = %#v, want nil", methodName, got)
-//		}
-//		return resp[0], err
-//	})
-//}
+	mux.HandleFunc("/endpoint/v1/endpoints", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{
+	"items": [{
+		"id": "endpointid-guid",
+		"type": "server",
+		"tenant": {
+			"id": "3d7a50a6-aee1-4193-a178-689bcb86f750"
+		},
+		"hostname": "myserverhostname",
+		"health": {
+			"overall": "suspicious",
+			"threats": {
+				"status": "good"
+			},
+			"services": {
+				"status": "good",
+				"serviceDetails": [{
+						"name": "HitmanPro.Alert service",
+						"status": "running"
+					},
+					{
+						"name": "Sophos Anti-Virus",
+						"status": "running"
+					}
+				]
+			}
+		},
+		"os": {
+			"isServer": true,
+			"platform": "windows",
+			"name": "Windows Server 2012 R2 Standard",
+			"majorVersion": 6,
+			"minorVersion": 3,
+			"build": 9600
+		},
+		"ipv4Addresses": [
+			"10.127.181.8",
+			"110.205.25.8"
+		],
+		"ipv6Addresses": [
+			"fc80::25cc:2ae5:d417:54a0"
+		],
+		"macAddresses": [
+			"00:5a:52:83:54:AB",
+			"00:5a:53:8C:28:9D"
+		],
+		"group": {
+			"name": "Bolton's Skinning Service"
+		},
+		"associatedPerson": {
+			"viaLogin": "MyCompy\\\\tywinthelion"
+		},
+		"tamperProtectionEnabled": true,
+		"assignedProducts": [{
+				"code": "coreAgent",
+				"version": "2.10.8",
+				"status": "installed"
+			},
+			{
+				"code": "endpointProtection",
+				"version": "10.8.9.2",
+				"status": "installed"
+			},
+			{
+				"code": "interceptX",
+				"version": "2.10.18",
+				"status": "installed"
+			}
+		],
+		"lastSeenAt": "2020-12-28T10:46:57.393Z",
+		"lockdown": {
+			"status": "notInstalled",
+			"updateStatus": "notInstalled"
+		}
+
+	}],
+	"pages": {
+		"fromKey": "1",
+		"size": 1,
+		"total": 1,
+		"items": 1,
+		"maxSize": 500
+	}
+}`))
+
+	})
+
+	assert.NotNil(t, client.Endpoints)
+
+	ctx := context.Background()
+	epl := EndpointListOptions{
+		ListByFromKeyOptions:     ListByFromKeyOptions{
+			PageFromKey: "1",
+			PageSize:    500,
+			PageTotal:   true,
+		},
+	}
+	got, _, err := client.Endpoints.List(ctx, "3d7a50a6-aee1-4193-a178-689bcb86f750", "https://tenurl.com", &Endpoints{}, epl)
+	if err != nil {
+		assert.NoErrorf(t, err,"EndpointService.Get returned error: %v", err)
+	}
+	assert.NotNil(t, got)
+
+
+
+	want := &Endpoints{
+		Items: []Item{
+			{ID: String("endpointid-guid"),
+				Type:     String("server"),
+				Tenant:   &TenantEP{ID: "3d7a50a6-aee1-4193-a178-689bcb86f750"},
+				Hostname: String("myserverhostname"),
+				Health: &Health{
+					Overall: String("suspicious"),
+					Threats: Threats{Status: String("good")},
+					Services: Services{
+						Status: Overall("good"),
+						ServiceDetails: []ServiceDetail{
+							{
+								Name:   "HitmanPro.Alert service",
+								Status: "running",
+							},
+							{
+								Name:   "Sophos Anti-Virus",
+								Status: "running",
+							},
+						},
+					},
+				},
+				OS: &OS{
+					IsServer:     true,
+					Platform:     "windows",
+					Name:         "Windows Server 2012 R2 Standard",
+					MajorVersion: 6,
+					MinorVersion: 3,
+					Build:        Int64(9600),
+				},
+				Ipv4Addresses: []string{"10.127.181.8", "110.205.25.8"},
+				Ipv6Addresses: []string{"fc80::25cc:2ae5:d417:54a0"},
+				MACAddresses:  []string{"00:5a:52:83:54:AB", "00:5a:53:8C:28:9D"},
+				Group:         &Group{Name: "Bolton's Skinning Service"},
+				AssociatedPerson: &AssociatedPerson{
+					Name:     nil,
+					ViaLogin: `MyCompy\\tywinthelion`,
+					ID:       nil,
+				},
+				TamperProtectionEnabled: Bool(true),
+				AssignedProducts: []AssignedProduct{
+					{
+						Code:    "coreAgent",
+						Version: "2.10.8",
+						Status:  "installed",
+					},
+					{
+						Code:    "endpointProtection",
+						Version: "10.8.9.2",
+						Status:  "installed",
+					},
+					{
+						Code:    "interceptX",
+						Version: "2.10.18",
+						Status:  "installed",
+					},
+				},
+
+				LastSeenAt: String("2020-12-28T10:46:57.393Z"),
+				Encryption: nil,
+				Lockdown: &Lockdown{
+					Status:       "notInstalled",
+					UpdateStatus: "notInstalled",
+				},
+			},
+		},
+		Pages: &PagesByFromKey{
+			FromKey: String("1"),
+			Size:    Int(1),
+			Total:   Int(1),
+			Items:   Int(1),
+			MaxSize: Int(500),
+		},
+	}
+	assert.Equal(t, want, got)
+
+	//const methodName = "Get"
+	//
+	//testNewRequestAndDoFailure(t, methodName, client, func() (*Response, error) {
+	//	got, resp, err := client.Endpoints.Get(ctx, "tenantid-guid", "url", "endpointid-guid")
+	//	assert.Nilf(t, got, "testNewRequestAndDoFailure %v = %#v, want nil", methodName, got)
+
+	//	return resp, err
+	//})
+
+}
+
+func TestEndpointService_Get(t *testing.T) {
+	client, mux, _, teardown := setup()
+	defer teardown()
+
+	mux.HandleFunc("/endpoint/v1/endpoints/endpointid-guid", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{
+	"id": "endpointid-guid",
+	"type": "server",
+	"tenant": {
+		"id": "tenantid-guid"
+	},
+	"hostname": "myserverhostname",
+	"health": {
+		"overall": "suspicious",
+		"threats": {
+			"status": "good"
+		},
+		"services": {
+			"status": "good",
+			"serviceDetails": [{
+					"name": "HitmanPro.Alert service",
+					"status": "running"
+				},
+				{
+					"name": "Sophos Anti-Virus",
+					"status": "running"
+				}
+			]
+		}
+	},
+	"os": {
+		"isServer": true,
+		"platform": "windows",
+		"name": "Windows Server 2012 R2 Standard",
+		"majorVersion": 6,
+		"minorVersion": 3,
+		"build": 9600
+	},
+	"ipv4Addresses": [
+		"10.127.181.8",
+		"110.205.25.8"
+	],
+	"ipv6Addresses": [
+		"fc80::25cc:2ae5:d417:54a0"
+	],
+	"macAddresses": [
+		"00:5a:52:83:54:AB",
+		"00:5a:53:8C:28:9D"
+	],
+	"group": {
+		"name": "Bolton's Skinning Service"
+	},
+	"associatedPerson": {
+		"viaLogin": "MyCompy\\\\tywinthelion"
+	},
+	"tamperProtectionEnabled": true,
+	"assignedProducts": [{
+			"code": "coreAgent",
+			"version": "2.10.8",
+			"status": "installed"
+		},
+		{
+			"code": "endpointProtection",
+			"version": "10.8.9.2",
+			"status": "installed"
+		},
+		{
+			"code": "interceptX",
+			"version": "2.10.18",
+			"status": "installed"
+		}
+	],
+	"lastSeenAt": "2020-12-28T10:46:57.393Z",
+	"lockdown": {
+		"status": "notInstalled",
+		"updateStatus": "notInstalled"
+	}
+}`))
+
+	})
+
+	assert.NotNil(t, client.Endpoints)
+
+	ctx := context.Background()
+
+	got, _, err := client.Endpoints.Get(ctx, "tenantid-guid", "", "endpointid-guid")
+	if err != nil {
+		assert.NoErrorf(t, err,"EndpointService.Get returned error: %v", err)
+	}
+	assert.NotNil(t, got)
+
+
+
+	want := &Item{
+		ID:                      String("endpointid-guid"),
+		Type:                    String("server"),
+		Tenant:                  &TenantEP{ID: "tenantid-guid"},
+		Hostname:                String("myserverhostname"),
+		Health:                  &Health{
+			Overall:  String("suspicious"),
+			Threats:  Threats{Status: String("good")},
+			Services: Services{
+				Status:         Overall("good"),
+				ServiceDetails: []ServiceDetail{
+					{
+						Name:   "HitmanPro.Alert service",
+						Status: "running",
+					},
+					{
+						Name:   "Sophos Anti-Virus",
+						Status: "running",
+					},
+				},
+			},
+		},
+		OS:                      &OS{
+			IsServer:     true,
+			Platform:    "windows",
+			Name:         "Windows Server 2012 R2 Standard",
+			MajorVersion: 6,
+			MinorVersion: 3,
+			Build:        Int64(9600),
+		},
+		Ipv4Addresses:           []string{"10.127.181.8", "110.205.25.8"},
+		Ipv6Addresses:           []string{"fc80::25cc:2ae5:d417:54a0"},
+		MACAddresses:            []string{       "00:5a:52:83:54:AB", "00:5a:53:8C:28:9D"},
+		Group:                   &Group{Name: "Bolton's Skinning Service"},
+		AssociatedPerson:        &AssociatedPerson{
+			Name:     nil,
+			ViaLogin: `MyCompy\\tywinthelion`,
+			ID:       nil,
+		},
+		TamperProtectionEnabled: Bool(true),
+		AssignedProducts:        []AssignedProduct{
+			{
+				Code:    "coreAgent",
+				Version: "2.10.8",
+				Status:  "installed",
+			},
+			{
+				Code:    "endpointProtection",
+				Version: "10.8.9.2",
+				Status:  "installed",
+			},
+			{
+				Code:    "interceptX",
+				Version: "2.10.18",
+				Status:  "installed",
+			},
+		},
+
+		LastSeenAt:              String("2020-12-28T10:46:57.393Z"),
+		Encryption:              nil,
+		Lockdown:                &Lockdown{
+			Status:       "notInstalled",
+			UpdateStatus: "notInstalled",
+		},
+	}
+	assert.Equal(t, want, got)
+
+	//const methodName = "Get"
+	//
+	//testNewRequestAndDoFailure(t, methodName, client, func() (*Response, error) {
+	//	got, resp, err := client.Endpoints.Get(ctx, "tenantid-guid", "url", "endpointid-guid")
+	//	assert.Nilf(t, got, "testNewRequestAndDoFailure %v = %#v, want nil", methodName, got)
+
+	//	return resp, err
+	//})
+
+}
