@@ -10,9 +10,6 @@
 // These tests eliminate most of the code coverage problems so that real
 // code coverage issues can be more readily identified.
 //
-// It is meant to be used by sophoscentral contributors in conjunction with the
-// go generate tool before sending a PR to GitHub.
-// Please see the CONTRIBUTING.md file for more information.
 package main
 
 import (
