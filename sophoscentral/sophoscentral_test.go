@@ -1,6 +1,7 @@
 package sophoscentral
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,9 +16,13 @@ import (
 	"testing"
 	"time"
 )
-
-// setup sets up a test HTTP server along with a sophoscentral.Client that is
-// configured to talk a test server. Tests should register handlers on
+const (
+	// baseURLPath is a non-empty Client.BaseURL path to use during tests,
+	// to ensure relative URLs are used for all endpoints.
+	baseURLPath = "/api-testing"
+)
+// setup sets up a test HTTP server along with a github.Client that is
+// configured to talk to that test server. Tests should register handlers on
 // mux which provide mock responses for the API method being tested.
 func setup() (client *Client, mux *http.ServeMux, serverURL string, teardown func()) {
 	// mux is the HTTP request multiplexer used with the test server.
@@ -27,13 +32,14 @@ func setup() (client *Client, mux *http.ServeMux, serverURL string, teardown fun
 	// specified as absolute rather than relative. It only makes a difference
 	// when there's a non-empty base URL path. So, use that. See issue #752.
 	apiHandler := http.NewServeMux()
-	apiHandler.Handle(serverURL+"something/", http.StripPrefix(serverURL, mux))
+	apiHandler.Handle(baseURLPath+"/", http.StripPrefix(baseURLPath, mux))
 	apiHandler.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 		fmt.Fprintln(os.Stderr, "FAIL: Client.BaseURL path prefix is not preserved in the request URL:")
 		fmt.Fprintln(os.Stderr)
 		fmt.Fprintln(os.Stderr, "\t"+req.URL.String())
 		fmt.Fprintln(os.Stderr)
 		fmt.Fprintln(os.Stderr, "\tDid you accidentally use an absolute endpoint URL rather than relative?")
+		fmt.Fprintln(os.Stderr, "\tSee https://github.com/google/go-github/issues/752 for information.")
 		http.Error(w, "Client.BaseURL path prefix is not preserved in the request URL.", http.StatusInternalServerError)
 	})
 
@@ -42,8 +48,8 @@ func setup() (client *Client, mux *http.ServeMux, serverURL string, teardown fun
 
 	// client is the GitHub client being tested and is
 	// configured to use test server.
-	client = NewClient(nil, nil, nil)
-	url, _ := url.Parse(server.URL + "/")
+	client = NewClient(context.Background(), server.Client(), nil)
+	url, _ := url.Parse(server.URL + baseURLPath + "/")
 	client.BaseURL = url
 
 	return client, mux, server.URL, server.Close
@@ -604,3 +610,35 @@ func TestAddOptions_QueryValues(t *testing.T) {
 //		t.Fatalf("resp.Body.Close() returned error: %v", err)
 //	}
 //}
+// Test function under NewRequest failure and then s.client.Do failure.
+// Method f should be a regular call that would normally succeed, but
+// should return an error when NewRequest or s.client.Do fails.
+func testNewRequestAndDoFailure(t *testing.T, methodName string, client *Client, f func() (*Response, error)) {
+	t.Helper()
+	if methodName == "" {
+		t.Error("testNewRequestAndDoFailure: must supply method methodName")
+	}
+
+	client.BaseURL.Path = ""
+	resp, err := f()
+	if resp != nil {
+		t.Errorf("client.BaseURL.Path='' %v resp = %#v, want nil", methodName, resp)
+	}
+	if err == nil {
+		t.Errorf("client.BaseURL.Path='' %v err = nil, want error", methodName)
+	}
+
+	//client.BaseURL.Path = "/api-v3/"
+	//client.rateLimits[0].Reset.Time = time.Now().Add(10 * time.Minute)
+	resp, err = f()
+	if want := http.StatusForbidden; resp == nil || resp.Response.StatusCode != want {
+		if resp != nil {
+			t.Errorf("rate.Reset.Time > now %v resp = %#v, want StatusCode=%v", methodName, resp.Response, want)
+		} else {
+			t.Errorf("rate.Reset.Time > now %v resp = nil, want StatusCode=%v", methodName, want)
+		}
+	}
+	if err == nil {
+		t.Errorf("rate.Reset.Time > now %v err = nil, want error", methodName)
+	}
+}
