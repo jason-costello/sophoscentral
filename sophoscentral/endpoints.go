@@ -5,11 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	"time"
-
-	"net/url"
 )
+
+const endpointV1BasePath = "endpoint/v1/"
 
 // EndpointsService handles communication with the endpoint related methods of the sophos central API
 
@@ -83,8 +82,8 @@ type Volume struct {
 }
 
 type AssignedProduct struct {
-	Code    Code           `json:"code"`
-	Version string         `json:"version"`
+	Code    Code    `json:"code"`
+	Version string  `json:"version"`
 	Status  *string `json:"status"`
 }
 
@@ -109,7 +108,7 @@ type Services struct {
 	// Status  Health status of an endpoint or a service running on an endpoint.
 	// The following values are allowed:
 	// good, suspicious, bad, unknown
-	Status Overall `json:"status"`
+	Status string `json:"status"`
 	// ServiceDetails Details of services on the endpoint.
 	ServiceDetails []ServiceDetail `json:"serviceDetails"`
 }
@@ -132,12 +131,12 @@ type Lockdown struct {
 }
 
 type OS struct {
-	IsServer     bool     `json:"isServer"`
+	IsServer     bool    `json:"isServer"`
 	Platform     *string `json:"platform"`
-	Name         string   `json:"name"`
-	MajorVersion int64    `json:"majorVersion"`
-	MinorVersion int64    `json:"minorVersion"`
-	Build        *int64   `json:"build,omitempty"`
+	Name         string  `json:"name"`
+	MajorVersion int64   `json:"majorVersion"`
+	MinorVersion int64   `json:"minorVersion"`
+	Build        *int64  `json:"build,omitempty"`
 }
 
 type TenantEP struct {
@@ -145,20 +144,6 @@ type TenantEP struct {
 }
 
 type Code string
-
-type Overall string
-
-// ServiceDetailName Details of services on the endpoint.
-//type ServiceDetailName string
-//
-//type ServiceDetailStatus string
-//
-//
-//type InstalledState string
-//
-//type Platform string
-//
-//type TypeEP string
 
 func (e Endpoints) String() string {
 	return Stringify(e)
@@ -277,27 +262,29 @@ type EndpointListOptions struct {
 }
 
 // List gathers all endpoints for a tenant ID
-// https://developer.sophos.com/docs/endpoint-v1/1/routes/endpoints/get
-func (e *EndpointService) List(ctx context.Context, tenantID, tenantURL string, endpoints *Endpoints, opts EndpointListOptions) (*Endpoints, []*Response, error) {
+// https://api-{region}.central.sophos.com/endpoint/v1/endpoints
+func (e *EndpointService) List(ctx context.Context, tenantID string, tenantURL BaseURL, endpoints *Endpoints, opts EndpointListOptions) (*Endpoints, []*Response, error) {
+
+	// url path to call
+	path := e.basePath + "endpoints"
+	path, err := addOptions(path, opts)
+	if err != nil {
+		return nil, nil, err
+	}
 	if tenantID == "" {
 		return nil, nil, errors.New("empty tenantID")
 	}
 
-	if _, err := uuid.Parse(tenantID); err != nil {
-		return nil, nil, errors.New("invalid tenant id")
-	}
-
+	var tenantURLptr *BaseURL
 	if tenantURL == "" {
-		return nil, nil, errors.New("empty tenant url")
-	}
-
-	if _, err := url.Parse(tenantURL); err != nil {
-		return nil, nil, errors.New("invalid tenant url")
+		tenantURLptr = nil
+	} else {
+		tenantURLptr = &tenantURL
 	}
 
 	var responses []*Response
 
-	req, err := e.client.NewRequest("GET", "endpoint/v1/endpoints", nil)
+	req, err := e.client.NewRequest("GET", path, tenantURLptr, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -342,20 +329,14 @@ func (e *EndpointService) List(ctx context.Context, tenantID, tenantURL string, 
 // Get fetches an endpoint
 // https://developer.sophos.com/docs/endpoint-v1/1/routes/endpoints/%7BendpointId%7D/get
 // https://api-{dataRegion}.central.sophos.com/endpoint/v1/endpoints/{endpointId}
-func (e *EndpointService) Get(ctx context.Context, tenantID, tenantURL, endpointID string) (*Item, *Response, error) {
-
-	u := fmt.Sprintf("endpoint/v1/endpoints/%s", endpointID)
-
-	if e == nil {
-		return nil, nil, errors.New("nil ep client")
+func (e *EndpointService) Get(ctx context.Context, tenantID string, tenantURL BaseURL, endpointID string) (*Item, *Response, error) {
+	// url path to call
+	if endpointID == "" {
+		return nil, nil, errors.New("endpointID is empty")
 	}
-	if e.client == nil {
+	path := fmt.Sprintf("%sendpoints/%s", e.basePath, endpointID)
 
-		return nil, nil, errors.New("nil  client")
-
-	}
-
-	req, err := e.client.NewRequest("GET", u, nil)
+	req, err := e.client.NewRequest("GET", path, &tenantURL, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -371,42 +352,27 @@ func (e *EndpointService) Get(ctx context.Context, tenantID, tenantURL, endpoint
 
 }
 
-
-type TamperProtectionSettings struct {
-	Password          *string               `json:"password,omitempty"`
-	PreviousPasswords []TPPreviousPasswords `json:"previousPasswords,omitempty"`
-	Enabled           bool                  `json:"enabled,omitempty"`
-}
-type TPPreviousPasswords struct {
-	Password      *string `json:"password,omitempty"`
-	InvalidatedAt *string `json:"invalidatedAt,omitempty"`
-}
-
-// TamperProtection fetches the TamperProtection settings for a specific endpoint
-// https://api-{dataRegion}.central.sophos.com/endpoint/v1/endpoints/{endpointId}/tamper-protection
-func (e *EndpointService) TamperProtection(ctx context.Context, tenantID, tenantURL, endpointID string) (*TamperProtectionSettings, *Response, error) {
-
-	u := fmt.Sprintf("endpoint/v1/endpoints/%s/tamper-protection", endpointID)
-
-	if e == nil {
-		return nil, nil, errors.New("nil ep client")
+// Delete an endpoint
+// https://api-{dataRegion}.central.sophos.com/endpoint/v1/endpoints/{endpointId}
+func (e *EndpointService) Delete(ctx context.Context, tenantID string, tenantURL BaseURL, endpointID string) (*Item, *Response, error) {
+	// url path to call
+	if endpointID == "" {
+		return nil, nil, errors.New("endpointID is empty")
 	}
-	if e.client == nil {
-		return nil, nil, errors.New("nil  client")
-	}
+	path := fmt.Sprintf("%sendpoints/%s", e.basePath, endpointID)
 
-	req, err := e.client.NewRequest("GET", u, nil)
+	req, err := e.client.NewRequest("DELETE", path, &tenantURL, nil)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	req.Header.Set("X-Tenant-ID", tenantID)
 
-	tps := new(TamperProtectionSettings)
-	resp, err := e.client.Do(ctx, req, tps)
+	ep := new(Item)
+	resp, err := e.client.Do(ctx, req, ep)
 	if err != nil {
 		return nil, resp, err
 	}
-	return tps, resp, nil
+	return ep, resp, nil
 
 }
