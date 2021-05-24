@@ -277,3 +277,46 @@ func TestEndpointService_ListAllowedItems(t *testing.T) {
 	assert.Equal(t,6, len(allowedItems.Items))
 
 }
+func TestNewAuthToken(t *testing.T) {
+	var (
+		cid = os.Getenv("SC_CLIENT_ID_PASS")
+		cs = os.Getenv("SC_CLIENT_SEC_PASS")
+	)
+	type args struct {
+		ctx context.Context
+		ar  AuthRequest
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    time.Time
+		wantErr bool
+	}{
+		{
+			name:"auth test",
+			args: args{
+				ctx: context.Background(),
+				ar: AuthRequest{
+					ClientID:     cid,
+					ClientSecret: cs,
+					TokenURL:     "https://id.sophos.com/api/v2/oauth2/token",
+					Scopes:       []string{"token"},
+					Style:        1,
+				}},
+			want: time.Now().UTC(),
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewAuthToken(tt.args.ctx, tt.args.ar)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewAuthToken() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			assert.NotNil(t, got)
+			assert.Greater(t, got.Expiry.UTC().Sub(tt.want).Seconds(),float64(3000))
+			// assert.Equal(t, tt.want, got.Expiry.UTC().Format(time.RFC3339))
+		})
+	}
+}
