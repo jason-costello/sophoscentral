@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -16,11 +17,13 @@ import (
 	"testing"
 	"time"
 )
+
 const (
 	// baseURLPath is a non-empty Client.BaseURL path to use during tests,
 	// to ensure relative URLs are used for all endpoints.
 	baseURLPath = "/api-testing"
 )
+
 // setup sets up a test HTTP server along with a github.Client that is
 // configured to talk to that test server. Tests should register handlers on
 // mux which provide mock responses for the API method being tested.
@@ -33,6 +36,7 @@ func setup() (client *Client, mux *http.ServeMux, serverURL string, teardown fun
 	// when there's a non-empty base URL path. So, use that. See issue #752.
 	apiHandler := http.NewServeMux()
 	apiHandler.Handle(baseURLPath+"/", http.StripPrefix(baseURLPath, mux))
+
 	apiHandler.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 		fmt.Fprintln(os.Stderr, "FAIL: Client.BaseURL path prefix is not preserved in the request URL:")
 		fmt.Fprintln(os.Stderr)
@@ -45,13 +49,20 @@ func setup() (client *Client, mux *http.ServeMux, serverURL string, teardown fun
 
 	// server is a test HTTP server used to provide mock API responses.
 	server := httptest.NewServer(apiHandler)
+	//]fmt.Println("test server url: ", server.URL)
 
-	// client is the GitHub client being tested and is
+	// httpClient is the GitHub httpClient being tested and is
 	// configured to use test server.
 	client = NewClient(context.Background(), server.Client(), nil)
-	url, _ := url.Parse(server.URL + baseURLPath + "/")
+	url, err := url.Parse(server.URL + baseURLPath + "/")
+	if err != nil {
+		fmt.Println("failed to parse server.URL + baseURLPath + \"\\\"")
+	}
 	client.BaseURL = url
 
+	if client == nil {
+		fmt.Println("Failed to generate testing client")
+	}
 	return client, mux, server.URL, server.Close
 }
 
@@ -173,16 +184,13 @@ func testBadOptions(t *testing.T, methodName string, f func() error) {
 func TestNewClient(t *testing.T) {
 	c := NewClient(nil, http.DefaultClient, nil)
 
-	if got, want := c.BaseURL.String(), defaultBaseURL; got != want {
-		t.Errorf("NewClient BaseURL is %v, want %v", got, want)
-	}
 	if got, want := c.UserAgent, userAgent; got != want {
 		t.Errorf("NewClient UserAgent is %v, want %v", got, want)
 	}
 
 	nhc := new(http.Client)
 	c2 := NewClient(nil, nhc, nil)
-	if c.client == c2.client {
+	if c.httpClient == c2.httpClient {
 		t.Error("NewClient returned same http.Clients, but they should differ")
 	}
 }
@@ -193,7 +201,7 @@ func TestNewRequest_invalidJSON(t *testing.T) {
 	type T struct {
 		A map[interface{}]interface{}
 	}
-	_, err := c.NewRequest("GET", ".", &T{})
+	_, err := c.NewRequest("GET", ".", nil, &T{})
 
 	if err == nil {
 		t.Error("Expected error to be returned.")
@@ -205,23 +213,23 @@ func TestNewRequest_invalidJSON(t *testing.T) {
 
 func TestNewRequest_badURL(t *testing.T) {
 	c := NewClient(nil, nil, nil)
-	_, err := c.NewRequest("GET", ":", nil)
+	_, err := c.NewRequest("GET", ":", nil, nil)
 	testURLParseError(t, err)
 }
 
 func TestNewRequest_badMethod(t *testing.T) {
 	c := NewClient(nil, nil, nil)
-	if _, err := c.NewRequest("BOGUS\nMETHOD", ".", nil); err == nil {
+	if _, err := c.NewRequest("BOGUS\nMETHOD", ".", nil, nil); err == nil {
 		t.Fatal("NewRequest returned nil; expected error")
 	}
 }
 
-// ensure that no User-Agent header is set if the client's UserAgent is empty.
-// This caused a problem with Google's internal http client.
+// ensure that no User-Agent header is set if the httpClient's UserAgent is empty.
+// This caused a problem with Google's internal http httpClient.
 func TestNewRequest_emptyUserAgent(t *testing.T) {
 	c := NewClient(nil, nil, nil)
 	c.UserAgent = ""
-	req, err := c.NewRequest("GET", ".", nil)
+	req, err := c.NewRequest("GET", ".", nil, nil)
 	if err != nil {
 		t.Fatalf("NewRequest returned unexpected error: %v", err)
 	}
@@ -238,7 +246,7 @@ func TestNewRequest_emptyUserAgent(t *testing.T) {
 // subtle errors.
 func TestNewRequest_emptyBody(t *testing.T) {
 	c := NewClient(nil, nil, nil)
-	req, err := c.NewRequest("GET", ".", nil)
+	req, err := c.NewRequest("GET", ".", nil, nil)
 	if err != nil {
 		t.Fatalf("NewRequest returned unexpected error: %v", err)
 	}
@@ -262,7 +270,7 @@ func TestNewRequest_errorForNoTrailingSlash(t *testing.T) {
 			t.Fatalf("url.Parse returned unexpected error: %v.", err)
 		}
 		c.BaseURL = u
-		if _, err := c.NewRequest(http.MethodGet, "test", nil); test.wantError && err == nil {
+		if _, err := c.NewRequest(http.MethodGet, "test", nil, nil); test.wantError && err == nil {
 			t.Fatalf("Expected error to be returned.")
 		} else if !test.wantError && err != nil {
 			t.Fatalf("NewRequest returned unexpected error: %v.", err)
@@ -272,7 +280,7 @@ func TestNewRequest_errorForNoTrailingSlash(t *testing.T) {
 
 //
 //func TestDo(t *testing.T) {
-//	client, mux, _, teardown := setup()
+//	httpClient, mux, _, teardown := setup()
 //	defer teardown()
 //
 //	type foo struct {
@@ -284,10 +292,10 @@ func TestNewRequest_errorForNoTrailingSlash(t *testing.T) {
 //		fmt.Fprint(w, `{"A":"a"}`)
 //	})
 //
-//	req, _ := client.NewRequest("GET", ".", nil)
+//	req, _ := httpClient.NewRequest("GET", ".", nil)
 //	body := new(foo)
 //	ctx := context.Background()
-//	resp, err := client.Do(ctx, req, body)
+//	resp, err := httpClient.Do(ctx, req, body)
 //	if err != nil{
 //		t.Error(err)
 //	}
@@ -303,7 +311,7 @@ func TestDo_nilContext(t *testing.T) {
 	client, _, _, teardown := setup()
 	defer teardown()
 
-	req, _ := client.NewRequest("GET", ".", nil)
+	req, _ := client.NewRequest("GET", ".", nil, nil)
 	_, err := client.Do(nil, req, nil)
 
 	if !errors.Is(err, errNonNilContext) {
@@ -312,16 +320,16 @@ func TestDo_nilContext(t *testing.T) {
 }
 
 //func TestDo_httpError(t *testing.T) {
-//	client, mux, _, teardown := setup()
+//	httpClient, mux, _, teardown := setup()
 //	defer teardown()
 //
 //	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 //		http.Error(w, "Bad Request", 400)
 //	})
 //
-//	req, _ := client.NewRequest("GET", ".", nil)
+//	req, _ := httpClient.NewRequest("GET", ".", nil)
 //	ctx := context.Background()
-//	resp, err := client.Do(ctx, req, nil)
+//	resp, err := httpClient.Do(ctx, req, nil)
 //
 //	if err == nil {
 //		t.Fatal("Expected HTTP 400 error, got no error.")
@@ -332,7 +340,7 @@ func TestDo_nilContext(t *testing.T) {
 //}
 
 //func TestDo_noContent(t *testing.T) {
-//	client, mux, _, teardown := setup()
+//	httpClient, mux, _, teardown := setup()
 //	defer teardown()
 //
 //	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -341,9 +349,9 @@ func TestDo_nilContext(t *testing.T) {
 //
 //	var body json.RawMessage
 //
-//	req, _ := client.NewRequest("GET", ".", nil)
+//	req, _ := httpClient.NewRequest("GET", ".", nil)
 //	ctx := context.Background()
-//	_, err := client.Do(ctx, req, &body)
+//	_, err := httpClient.Do(ctx, req, &body)
 //	if err != nil {
 //		t.Fatalf("Do returned unexpected error: %v", err)
 //	}
@@ -355,16 +363,17 @@ func TestSanitizeURL(t *testing.T) {
 	}{
 		{"/?a=b", "/?a=b"},
 		{"/?a=b&client_secret=secret", "/?a=b&client_secret=REDACTED"},
-		{"/?a=b&client_id=id&client_secret=secret", "/?a=b&client_id=id&client_secret=REDACTED"},
+		{"/?a=b&client_id=id&client_secret=secret", "/?a=b&client_id=REDACTED&client_secret=REDACTED"},
+		{"/?a=b&&client_secret=secret&organization_id=xxx", "/?a=b&client_secret=REDACTED&organization_id=REDACTED"},
+		{"/?a=b&partner_id=xxx&client_secret=secret&", "/?a=b&client_secret=REDACTED&partner_id=REDACTED"},
+		{"/?a=b&tenant_id=xxx&client_secret=secret&", "/?a=b&client_secret=REDACTED&tenant_id=REDACTED"},
 	}
 
 	for _, tt := range tests {
 		inURL, _ := url.Parse(tt.in)
 		want, _ := url.Parse(tt.want)
+		assert.Equal(t, want, sanitizeURL(inURL))
 
-		if got := sanitizeURL(inURL); !reflect.DeepEqual(got, want) {
-			t.Errorf("sanitizeURL(%v) returned %v, want %v", tt.in, got, want)
-		}
 	}
 }
 
@@ -372,17 +381,17 @@ func TestCheckResponse(t *testing.T) {
 	res := &http.Response{
 		Request:    &http.Request{},
 		StatusCode: http.StatusBadRequest,
-		Body:       ioutil.NopCloser(strings.NewReader(`{"message":"m"}`)),
+		Body:       ioutil.NopCloser(strings.NewReader(`{"message":"message-test check response body"}`)),
 	}
-	err := CheckResponse(res).(*ErrorResponse)
+	err := CheckResponse(res).(*SophosError)
 
 	if err == nil {
 		t.Errorf("Expected error response.")
 	}
 
-	want := &ErrorResponse{
+	want := &SophosError{
 		Response: res,
-		Message:  "m"}
+		Message:  "message-test check response body"}
 
 	if !errors.Is(err, want) {
 		t.Errorf("Error = %#v, want %#v", err, want)
@@ -431,13 +440,13 @@ func TestCheckResponse_noBody(t *testing.T) {
 		StatusCode: http.StatusBadRequest,
 		Body:       ioutil.NopCloser(strings.NewReader("")),
 	}
-	err := CheckResponse(res).(*ErrorResponse)
+	err := CheckResponse(res).(*SophosError)
 
 	if err == nil {
 		t.Errorf("Expected error response.")
 	}
 
-	want := &ErrorResponse{
+	want := &SophosError{
 		Response: res,
 	}
 	if !errors.Is(err, want) {
@@ -446,24 +455,27 @@ func TestCheckResponse_noBody(t *testing.T) {
 }
 
 func TestCheckResponse_unexpectedErrorStructure(t *testing.T) {
-	httpBody := `{"message":"m"}`
+	httpBody := `{"message":"http body message, unexpected error structure"}`
 	res := &http.Response{
 		Request:    &http.Request{},
 		StatusCode: http.StatusBadRequest,
 		Body:       ioutil.NopCloser(strings.NewReader(httpBody)),
 	}
-	err := CheckResponse(res).(*ErrorResponse)
+	err := CheckResponse(res).(*SophosError)
 
 	if err == nil {
 		t.Errorf("Expected error response.")
 	}
 
-	want := &ErrorResponse{
+	want := &SophosError{
 		Response: res,
-		Message:  "m",
+		Message:  "http body message, unexpected error structure",
 		Errors:   "",
 	}
+
 	if !errors.Is(err, want) {
+		t.Errorf(err.Error())
+		t.Errorf(httpBody)
 		t.Errorf("Error = %#v, want %#v", err, want)
 	}
 	data, err2 := ioutil.ReadAll(err.Response.Body)
@@ -471,13 +483,14 @@ func TestCheckResponse_unexpectedErrorStructure(t *testing.T) {
 		t.Fatalf("failed to read response body: %v", err)
 	}
 	if got := string(data); got != httpBody {
-		t.Errorf("ErrorResponse.Response.Body = %q, want %q", got, httpBody)
+
+		t.Errorf("ErrorResponse.Response.Body = \ngot :%q, \nwant: %q", got, httpBody)
 	}
 }
 
 func TestErrorResponse_Error(t *testing.T) {
 	res := &http.Response{Request: &http.Request{}}
-	err := ErrorResponse{Message: "m", Response: res}
+	err := SophosError{Message: "m", Response: res}
 	if err.Error() == "" {
 		t.Errorf("Expected non-empty ErrorResponse.Error()")
 	}
@@ -527,48 +540,27 @@ func TestFormatRateReset(t *testing.T) {
 	}
 }
 
-func TestRateLimitError(t *testing.T) {
-	u, err := url.Parse("https://example.com")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r := &RateLimitError{
-		Response: &http.Response{
-			Request:    &http.Request{Method: "PUT", URL: u},
-			StatusCode: http.StatusTooManyRequests,
-		},
-		Message: "<msg>",
-	}
-	if got, want := r.Error(), "PUT https://example.com: 429 <msg> [rate limit was reset"; !strings.Contains(got, want) {
-		t.Errorf("RateLimitError = %q, want %q", got, want)
-	}
-}
-
-func TestAcceptedError(t *testing.T) {
-	a := &AcceptedError{}
-	if got, want := a.Error(), "try again later"; !strings.Contains(got, want) {
-		t.Errorf("AcceptedError = %q, want %q", got, want)
-	}
-}
-
-func TestAbuseRateLimitError(t *testing.T) {
-	u, err := url.Parse("https://example.com")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r := &AbuseRateLimitError{
-		Response: &http.Response{
-			Request:    &http.Request{Method: "PUT", URL: u},
-			StatusCode: http.StatusTooManyRequests,
-		},
-		Message: "<msg>",
-	}
-	if got, want := r.Error(), "PUT https://example.com: 429 <msg>"; got != want {
-		t.Errorf("AbuseRateLimitError = %q, want %q", got, want)
-	}
-}
+//func TestRateLimitError(t *testing.T) {
+//	u, err := url.Parse("https://example.com")
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//
+//	r := &RateLimitError{
+//		Response: &http.Response{
+//			Request:    &http.Request{Method: "PUT", URL: u},
+//			StatusCode: http.StatusTooManyRequests,
+//		},
+//		Message: "<msg>",
+//	}
+//	got := r.Error()
+//
+//	assert.NotEmpty(t, got)
+//
+//	!strings.Contains(got, want) {
+//		t.Errorf("RateLimitError = %q, want %q", got, want)
+//	}
+//}
 
 func TestAddOptions_QueryValues(t *testing.T) {
 	if _, err := addOptions("yo", ""); err == nil {
@@ -578,7 +570,7 @@ func TestAddOptions_QueryValues(t *testing.T) {
 
 //func TestBareDo_returnsOpenBody(t *testing.T) {
 //
-//	client, mux, _, teardown := setup()
+//	httpClient, mux, _, teardown := setup()
 //	defer teardown()
 //
 //	expectedBody := "Hello from the other side !"
@@ -589,14 +581,14 @@ func TestAddOptions_QueryValues(t *testing.T) {
 //	})
 //
 //	ctx := context.Background()
-//	req, err := client.NewRequest("GET", "test-url", nil)
+//	req, err := httpClient.NewRequest("GET", "test-url", nil)
 //	if err != nil {
-//		t.Fatalf("client.NewRequest returned error: %v", err)
+//		t.Fatalf("httpClient.NewRequest returned error: %v", err)
 //	}
 //
-//	resp, err := client.BareDo(ctx, req)
+//	resp, err := httpClient.BareDo(ctx, req)
 //	if err != nil {
-//		t.Fatalf("client.BareDo returned error: %v", err)
+//		t.Fatalf("httpClient.BareDo returned error: %v", err)
 //	}
 //
 //	got, err := ioutil.ReadAll(resp.Body)
@@ -610,9 +602,9 @@ func TestAddOptions_QueryValues(t *testing.T) {
 //		t.Fatalf("resp.Body.Close() returned error: %v", err)
 //	}
 //}
-// Test function under NewRequest failure and then s.client.Do failure.
+// Test function under NewRequest failure and then s.httpClient.Do failure.
 // Method f should be a regular call that would normally succeed, but
-// should return an error when NewRequest or s.client.Do fails.
+// should return an error when NewRequest or s.httpClient.Do fails.
 func testNewRequestAndDoFailure(t *testing.T, methodName string, client *Client, f func() (*Response, error)) {
 	t.Helper()
 	if methodName == "" {
@@ -622,14 +614,14 @@ func testNewRequestAndDoFailure(t *testing.T, methodName string, client *Client,
 	client.BaseURL.Path = ""
 	resp, err := f()
 	if resp != nil {
-		t.Errorf("client.BaseURL.Path='' %v resp = %#v, want nil", methodName, resp)
+		t.Errorf("httpClient.BaseURL.Path='' %v resp = %#v, want nil", methodName, resp)
 	}
 	if err == nil {
-		t.Errorf("client.BaseURL.Path='' %v err = nil, want error", methodName)
+		t.Errorf("httpClient.BaseURL.Path='' %v err = nil, want error", methodName)
 	}
 
-	//client.BaseURL.Path = "/api-v3/"
-	//client.rateLimits[0].Reset.Time = time.Now().Add(10 * time.Minute)
+	//httpClient.BaseURL.Path = "/api-v3/"
+	//httpClient.rateLimits[0].Reset.Time = time.Now().Add(10 * time.Minute)
 	resp, err = f()
 	if want := http.StatusForbidden; resp == nil || resp.Response.StatusCode != want {
 		if resp != nil {
@@ -640,5 +632,78 @@ func testNewRequestAndDoFailure(t *testing.T, methodName string, client *Client,
 	}
 	if err == nil {
 		t.Errorf("rate.Reset.Time > now %v err = nil, want error", methodName)
+	}
+}
+
+func TestEnsureTrailingSlash(t *testing.T) {
+	type args struct {
+		s string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "no slash",
+			args: args{s: "no-slash-at-end"},
+			want: `no-slash-at-end/`,
+		},
+		{
+			name: "slash already at end",
+			args: args{s: `slash-at-end/`},
+			want: `slash-at-end/`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := EnsureTrailingSlash(tt.args.s)
+			assert.Equal(t, tt.want, got)
+
+		})
+	}
+}
+
+func TestNewAuthToken(t *testing.T) {
+	var (
+		cid = os.Getenv("SC_CLIENT_ID_PASS")
+		cs = os.Getenv("SC_CLIENT_SEC_PASS")
+	)
+	type args struct {
+		ctx context.Context
+		ar  AuthRequest
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    time.Time
+		wantErr bool
+	}{
+		{
+			name:"auth test",
+			args: args{
+				ctx: context.Background(),
+				ar: AuthRequest{
+				ClientID:     cid,
+				ClientSecret: cs,
+				TokenURL:     "https://id.sophos.com/api/v2/oauth2/token",
+				Scopes:       []string{"token"},
+				Style:        1,
+			}},
+			want: time.Now().UTC(),
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewAuthToken(tt.args.ctx, tt.args.ar)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewAuthToken() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			assert.NotNil(t, got)
+			assert.Greater(t, got.Expiry.UTC().Sub(tt.want).Seconds(),float64(3000))
+			// assert.Equal(t, tt.want, got.Expiry.UTC().Format(time.RFC3339))
+		})
 	}
 }

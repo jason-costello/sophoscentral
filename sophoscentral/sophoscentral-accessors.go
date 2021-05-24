@@ -11,12 +11,140 @@ import (
 	"time"
 )
 
-// GetRetryAfter returns the RetryAfter field if it's non-nil, zero value otherwise.
-func (a *AbuseRateLimitError) GetRetryAfter() time.Duration {
-	if a == nil || a.RetryAfter == nil {
-		return 0
+// GetID returns the ID field if it's non-nil, zero value otherwise.
+func (a *AICreatedBy) GetID() string {
+	if a == nil || a.ID == nil {
+		return ""
 	}
-	return *a.RetryAfter
+	return *a.ID
+}
+
+// GetName returns the Name field if it's non-nil, zero value otherwise.
+func (a *AICreatedBy) GetName() string {
+	if a == nil || a.Name == nil {
+		return ""
+	}
+	return *a.Name
+}
+
+// GetID returns the ID field if it's non-nil, zero value otherwise.
+func (a *AIOriginEndpoint) GetID() string {
+	if a == nil || a.ID == nil {
+		return ""
+	}
+	return *a.ID
+}
+
+// GetComment returns the Comment field if it's non-nil, zero value otherwise.
+func (a *AllowedItem) GetComment() string {
+	if a == nil || a.Comment == nil {
+		return ""
+	}
+	return *a.Comment
+}
+
+// GetCreatedAt returns the CreatedAt field if it's non-nil, zero value otherwise.
+func (a *AllowedItem) GetCreatedAt() time.Time {
+	if a == nil || a.CreatedAt == nil {
+		return time.Time{}
+	}
+	return *a.CreatedAt
+}
+
+// GetCreatedBy returns the CreatedBy field.
+func (a *AllowedItem) GetCreatedBy() *AICreatedBy {
+	if a == nil {
+		return nil
+	}
+	return a.CreatedBy
+}
+
+// GetID returns the ID field if it's non-nil, zero value otherwise.
+func (a *AllowedItem) GetID() string {
+	if a == nil || a.ID == nil {
+		return ""
+	}
+	return *a.ID
+}
+
+// GetOriginEndpoint returns the OriginEndpoint field.
+func (a *AllowedItem) GetOriginEndpoint() *AIOriginEndpoint {
+	if a == nil {
+		return nil
+	}
+	return a.OriginEndpoint
+}
+
+// GetProperties returns the Properties field.
+func (a *AllowedItem) GetProperties() *AllowedItemProperties {
+	if a == nil {
+		return nil
+	}
+	return a.Properties
+}
+
+// GetType returns the Type field if it's non-nil, zero value otherwise.
+func (a *AllowedItem) GetType() string {
+	if a == nil || a.Type == nil {
+		return ""
+	}
+	return *a.Type
+}
+
+// GetUpdatedAt returns the UpdatedAt field if it's non-nil, zero value otherwise.
+func (a *AllowedItem) GetUpdatedAt() time.Time {
+	if a == nil || a.UpdatedAt == nil {
+		return time.Time{}
+	}
+	return *a.UpdatedAt
+}
+
+// GetCertificateSigner returns the CertificateSigner field if it's non-nil, zero value otherwise.
+func (a *AllowedItemProperties) GetCertificateSigner() string {
+	if a == nil || a.CertificateSigner == nil {
+		return ""
+	}
+	return *a.CertificateSigner
+}
+
+// GetFileName returns the FileName field if it's non-nil, zero value otherwise.
+func (a *AllowedItemProperties) GetFileName() string {
+	if a == nil || a.FileName == nil {
+		return ""
+	}
+	return *a.FileName
+}
+
+// GetPath returns the Path field if it's non-nil, zero value otherwise.
+func (a *AllowedItemProperties) GetPath() string {
+	if a == nil || a.Path == nil {
+		return ""
+	}
+	return *a.Path
+}
+
+// GetSha256 returns the Sha256 field if it's non-nil, zero value otherwise.
+func (a *AllowedItemProperties) GetSha256() string {
+	if a == nil || a.Sha256 == nil {
+		return ""
+	}
+	return *a.Sha256
+}
+
+// GetPages returns the Pages field.
+func (a *AllowedItems) GetPages() *PageByOffset {
+	if a == nil {
+		return nil
+	}
+	return a.Pages
+}
+
+// GetStatus returns the Status field if it's non-nil, zero value otherwise.
+func (a *AssignedProduct) GetStatus() string {
+	if a == nil || a.Status == nil {
+		return ""
+	}
+	return *a.Status
 }
 
 // GetID returns the ID field if it's non-nil, zero value otherwise.
@@ -35,6 +163,134 @@ func (a *AssociatedPerson) GetName() string {
 	return *a.Name
 }
 
+// GetID returns the ID field if it's non-nil, zero value otherwise.
+func (b *BICreatedBy) GetID() string {
+	if b == nil || b.ID == nil {
+		return ""
+	}
+	return *b.ID
+}
+
+// GetName returns the Name field if it's non-nil, zero value otherwise.
+func (b *BICreatedBy) GetName() string {
+	if b == nil || b.Name == nil {
+		return ""
+	}
+	return *b.Name
+}
+
+// GetID returns the ID field if it's non-nil, zero value otherwise.
+func (b *BIOriginEndpoint) GetID() string {
+	if b == nil || b.ID == nil {
+		return ""
+	}
+	return *b.ID
+}
+
+// GetComment returns the Comment field if it's non-nil, zero value otherwise.
+func (b *BlockedItem) GetComment() string {
+	if b == nil || b.Comment == nil {
+		return ""
+	}
+	return *b.Comment
+}
+
+// GetCreatedAt returns the CreatedAt field if it's non-nil, zero value otherwise.
+func (b *BlockedItem) GetCreatedAt() time.Time {
+	if b == nil || b.CreatedAt == nil {
+		return time.Time{}
+	}
+	return *b.CreatedAt
+}
+
+// GetCreatedBy returns the CreatedBy field.
+func (b *BlockedItem) GetCreatedBy() *BICreatedBy {
+	if b == nil {
+		return nil
+	}
+	return b.CreatedBy
+}
+
+// GetID returns the ID field if it's non-nil, zero value otherwise.
+func (b *BlockedItem) GetID() string {
+	if b == nil || b.ID == nil {
+		return ""
+	}
+	return *b.ID
+}
+
+// GetOriginEndpoint returns the OriginEndpoint field.
+func (b *BlockedItem) GetOriginEndpoint() *BIOriginEndpoint {
+	if b == nil {
+		return nil
+	}
+	return b.OriginEndpoint
+}
+
+// GetProperties returns the Properties field.
+func (b *BlockedItem) GetProperties() *AllowedItemProperties {
+	if b == nil {
+		return nil
+	}
+	return b.Properties
+}
+
+// GetType returns the Type field if it's non-nil, zero value otherwise.
+func (b *BlockedItem) GetType() string {
+	if b == nil || b.Type == nil {
+		return ""
+	}
+	return *b.Type
+}
+
+// GetUpdatedAt returns the UpdatedAt field if it's non-nil, zero value otherwise.
+func (b *BlockedItem) GetUpdatedAt() time.Time {
+	if b == nil || b.UpdatedAt == nil {
+		return time.Time{}
+	}
+	return *b.UpdatedAt
+}
+
+// GetCertificateSigner returns the CertificateSigner field if it's non-nil, zero value otherwise.
+func (b *BlockedItemProperties) GetCertificateSigner() string {
+	if b == nil || b.CertificateSigner == nil {
+		return ""
+	}
+	return *b.CertificateSigner
+}
+
+// GetFileName returns the FileName field if it's non-nil, zero value otherwise.
+func (b *BlockedItemProperties) GetFileName() string {
+	if b == nil || b.FileName == nil {
+		return ""
+	}
+	return *b.FileName
+}
+
+// GetPath returns the Path field if it's non-nil, zero value otherwise.
+func (b *BlockedItemProperties) GetPath() string {
+	if b == nil || b.Path == nil {
+		return ""
+	}
+	return *b.Path
+}
+
+// GetSha256 returns the Sha256 field if it's non-nil, zero value otherwise.
+func (b *BlockedItemProperties) GetSha256() string {
+	if b == nil || b.Sha256 == nil {
+		return ""
+	}
+	return *b.Sha256
+}
+
+// GetPages returns the Pages field.
+func (b *BlockedItems) GetPages() *PageByOffset {
+	if b == nil {
+		return nil
+	}
+	return b.Pages
+}
+
 // GetPages returns the Pages field.
 func (e *Endpoints) GetPages() *PagesByFromKey {
 	if e == nil {
@@ -43,12 +299,92 @@ func (e *Endpoints) GetPages() *PagesByFromKey {
 	return e.Pages
 }
 
+// GetCreatedAt returns the CreatedAt field if it's non-nil, zero value otherwise.
+func (e *ExemptAllowedItemResponse) GetCreatedAt() string {
+	if e == nil || e.CreatedAt == nil {
+		return ""
+	}
+	return *e.CreatedAt
+}
+
+// GetID returns the ID field if it's non-nil, zero value otherwise.
+func (e *ExemptAllowedItemResponse) GetID() string {
+	if e == nil || e.ID == nil {
+		return ""
+	}
+	return *e.ID
+}
+
+// GetProperties returns the Properties field.
+func (e *ExemptAllowedItemResponse) GetProperties() *ExemptAllowedItemRequest {
+	if e == nil {
+		return nil
+	}
+	return e.Properties
+}
+
+// GetUpdatedAt returns the UpdatedAt field if it's non-nil, zero value otherwise.
+func (e *ExemptAllowedItemResponse) GetUpdatedAt() string {
+	if e == nil || e.UpdatedAt == nil {
+		return ""
+	}
+	return *e.UpdatedAt
+}
+
 // GetOverall returns the Overall field if it's non-nil, zero value otherwise.
 func (h *Health) GetOverall() string {
 	if h == nil || h.Overall == nil {
 		return ""
 	}
 	return *h.Overall
+}
+
+// GetComment returns the Comment field if it's non-nil, zero value otherwise.
+func (i *IsolationSettings) GetComment() string {
+	if i == nil || i.Comment == nil {
+		return ""
+	}
+	return *i.Comment
+}
+
+// GetEnabled returns the Enabled field if it's non-nil, zero value otherwise.
+func (i *IsolationSettings) GetEnabled() bool {
+	if i == nil || i.Enabled == nil {
+		return false
+	}
+	return *i.Enabled
+}
+
+// GetLastDisabledAt returns the LastDisabledAt field if it's non-nil, zero value otherwise.
+func (i *IsolationSettings) GetLastDisabledAt() string {
+	if i == nil || i.LastDisabledAt == nil {
+		return ""
+	}
+	return *i.LastDisabledAt
+}
+
+// GetLastEnabledAt returns the LastEnabledAt field if it's non-nil, zero value otherwise.
+func (i *IsolationSettings) GetLastEnabledAt() string {
+	if i == nil || i.LastEnabledAt == nil {
+		return ""
+	}
+	return *i.LastEnabledAt
+}
+
+// GetComment returns the Comment field if it's non-nil, zero value otherwise.
+func (i *IsolationSettingsUpdate) GetComment() string {
+	if i == nil || i.Comment == nil {
+		return ""
+	}
+	return *i.Comment
+}
+
+// GetEnabled returns the Enabled field if it's non-nil, zero value otherwise.
+func (i *IsolationSettingsUpdate) GetEnabled() bool {
+	if i == nil || i.Enabled == nil {
+		return false
+	}
+	return *i.Enabled
 }
 
 // GetAssociatedPerson returns the AssociatedPerson field.
@@ -155,6 +491,54 @@ func (o *OS) GetBuild() int64 {
 	return *o.Build
 }
 
+// GetPlatform returns the Platform field if it's non-nil, zero value otherwise.
+func (o *OS) GetPlatform() string {
+	if o == nil || o.Platform == nil {
+		return ""
+	}
+	return *o.Platform
+}
+
+// GetCurrent returns the Current field if it's non-nil, zero value otherwise.
+func (p *PageByOffset) GetCurrent() int {
+	if p == nil || p.Current == nil {
+		return 0
+	}
+	return *p.Current
+}
+
+// GetItems returns the Items field if it's non-nil, zero value otherwise.
+func (p *PageByOffset) GetItems() int {
+	if p == nil || p.Items == nil {
+		return 0
+	}
+	return *p.Items
+}
+
+// GetMaxsize returns the Maxsize field if it's non-nil, zero value otherwise.
+func (p *PageByOffset) GetMaxsize() int {
+	if p == nil || p.Maxsize == nil {
+		return 0
+	}
+	return *p.Maxsize
+}
+
+// GetSize returns the Size field if it's non-nil, zero value otherwise.
+func (p *PageByOffset) GetSize() int {
+	if p == nil || p.Size == nil {
+		return 0
+	}
+	return *p.Size
+}
+
+// GetTotal returns the Total field if it's non-nil, zero value otherwise.
+func (p *PageByOffset) GetTotal() int {
+	if p == nil || p.Total == nil {
+		return 0
+	}
+	return *p.Total
+}
+
 // GetFromKey returns the FromKey field if it's non-nil, zero value otherwise.
 func (p *PagesByFromKey) GetFromKey() string {
 	if p == nil || p.FromKey == nil {
@@ -243,6 +627,14 @@ func (p *PagesByOffset) GetTotal() int {
 	return *p.Total
 }
 
+// GetRetryAfter returns the RetryAfter field if it's non-nil, zero value otherwise.
+func (r *RateLimitError) GetRetryAfter() time.Duration {
+	if r == nil || r.RetryAfter == nil {
+		return 0
+	}
+	return *r.RetryAfter
+}
+
 // GetCore returns the Core field.
 func (r *RateLimits) GetCore() *Rate {
 	if r == nil {
@@ -251,10 +643,66 @@ func (r *RateLimits) GetCore() *Rate {
 	return r.Core
 }
 
+// GetName returns the Name field if it's non-nil, zero value otherwise.
+func (s *ServiceDetail) GetName() string {
+	if s == nil || s.Name == nil {
+		return ""
+	}
+	return *s.Name
+}
+
+// GetStatus returns the Status field if it's non-nil, zero value otherwise.
+func (s *ServiceDetail) GetStatus() string {
+	if s == nil || s.Status == nil {
+		return ""
+	}
+	return *s.Status
+}
+
+// GetPassword returns the Password field if it's non-nil, zero value otherwise.
+func (t *TamperProtectionSettings) GetPassword() string {
+	if t == nil || t.Password == nil {
+		return ""
+	}
+	return *t.Password
+}
+
 // GetStatus returns the Status field if it's non-nil, zero value otherwise.
 func (t *Threats) GetStatus() string {
 	if t == nil || t.Status == nil {
 		return ""
 	}
 	return *t.Status
+}
+
+// GetComment returns the Comment field if it's non-nil, zero value otherwise.
+func (t *ToggleIsolations) GetComment() string {
+	if t == nil || t.Comment == nil {
+		return ""
+	}
+	return *t.Comment
+}
+
+// GetEnabled returns the Enabled field if it's non-nil, zero value otherwise.
+func (t *ToggleIsolations) GetEnabled() bool {
+	if t == nil || t.Enabled == nil {
+		return false
+	}
+	return *t.Enabled
+}
+
+// GetInvalidatedAt returns the InvalidatedAt field if it's non-nil, zero value otherwise.
+func (t *TPPreviousPasswords) GetInvalidatedAt() string {
+	if t == nil || t.InvalidatedAt == nil {
+		return ""
+	}
+	return *t.InvalidatedAt
+}
+
+// GetPassword returns the Password field if it's non-nil, zero value otherwise.
+func (t *TPPreviousPasswords) GetPassword() string {
+	if t == nil || t.Password == nil {
+		return ""
+	}
+	return *t.Password
 }

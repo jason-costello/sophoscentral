@@ -9,41 +9,77 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/clientcredentials"
 	"net/http"
-	"net/url"
 	"os"
 	"reflect"
 	"sophoscentral/sophoscentral"
 	"strings"
 	"testing"
 )
-
-
-
+ var (
+	 cid = os.Getenv("SC_CLIENT_ID_PASS")
+	 cs = os.Getenv("SC_CLIENT_SEC_PASS")
+ )
 var skipURLs = flag.Bool("skip_urls", false, "skip url fields")
 
-func TestReturnedTypes(t *testing.T){
+func TestReturnedTypes(t *testing.T) {
 
 	// auth indicates whether tests are being run with an OAuth token.
 	// Tests can use this flag to skip certain tests when run without auth.
 
 	a := assert.New(t)
 	ctx := context.Background()
-	cid := os.Getenv("SC_CLIENT_ID")
-	cs := os.Getenv("SC_CLIENT_SEC")
+	//cid := os.Getenv("SC_CLIENT_ID_PASS")
+	//cs := os.Getenv("SC_CLIENT_SEC_PASS")
 	tid := os.Getenv("TYPE_TESTING_TENANT_ID_PASS")
-	eid := os.Getenv("TYPE_TESTING_EP_ID_PASS")
-	config := &clientcredentials.Config{
-		ClientID:       cid,
-		ClientSecret:   cs,
-		Scopes:         []string{"token"},
-		TokenURL:       "https://id.sophos.com/api/v2/oauth2/token",
-		EndpointParams: url.Values{},
+	eid := os.Getenv("TYPE_TESTING_ENDPOINT_ID_PASS")
+
+
+	//opts := sophoscentral.ListByPageOffset{
+	//	Page:      1,
+	//	PageSize:  1,
+	//	PageTotal: true,
+	//}
+
+	ctx = context.Background()
+	//ar := sophoscentral.AuthRequest{
+	//	ClientID:     cid,
+	//	ClientSecret: cs,
+	//	TokenURL:     "https://id.sophos.com/api/v2/oauth2/token",
+	//	Scopes:       []string{"token"},
+	//	Style:        1,
+	//}
+	//// pbo := sophoscentral.PageByOffsetOptions{opts}
+	//client, _ := sophoscentral.NewClientNewAuth(ctx, ar, nil)
+	//hc := sophoscentral.NewAuthHttpClient(ctx, ar, client.Token)
+	//
+	//
+
+
+
+	////
+	//config := &clientcredentials.Config{
+	//	ClientID:       cid,
+	//	ClientSecret:   cs,
+	//	Scopes:         []string{"token"},
+	//	TokenURL:       "https://id.sophos.com/api/v2/oauth2/token",
+	//	EndpointParams: url.Values{},
+	//}
+
+
+	ar := sophoscentral.AuthRequest{
+		ClientID:     cid,
+		ClientSecret: cs,
+		TokenURL:     "https://id.sophos.com/api/v2/oauth2/token",
+		Scopes:       []string{"token"},
+		Style:        1,
 	}
 
-	token, err := config.Token(ctx)
-	a.NoError(err)
+	scClient, err := sophoscentral.NewClientNewAuth(ctx, ar, nil)
+	if err != nil{
+		t.Fatal(err)
+	}
+	token := scClient.Token
 
 	oauthConfig := oauth2.Config{
 		Endpoint: oauth2.Endpoint{
@@ -52,6 +88,7 @@ func TestReturnedTypes(t *testing.T){
 		},
 		Scopes: []string{"token"},
 	}
+	hc := oauthConfig.Client(ctx, token)
 
 
 	test := []struct {
@@ -65,7 +102,7 @@ func TestReturnedTypes(t *testing.T){
 		{
 			url:         "https://api-us03.central.sophos.com/endpoint/v1/endpoints",
 			typ:         &sophoscentral.Endpoints{},
-			hClient:     oauthConfig.Client(ctx, token),
+			hClient:     hc,
 			token:       token,
 			serviceType: sophoscentral.EndpointService{},
 			headers: map[string]string{
@@ -76,7 +113,7 @@ func TestReturnedTypes(t *testing.T){
 		{
 			url:         fmt.Sprintf("https://api-us03.central.sophos.com/endpoint/v1/endpoints/%s", eid),
 			typ:         &sophoscentral.Item{},
-			hClient:     oauthConfig.Client(ctx, token),
+			hClient:     hc,
 			token:       token,
 			serviceType: &sophoscentral.EndpointService{},
 			headers: map[string]string{
@@ -84,19 +121,51 @@ func TestReturnedTypes(t *testing.T){
 				"X-Tenant-ID":  tid,
 			},
 		},
-	}
+		{
+			url:         "https://api-us03.central.sophos.com/endpoint/v1/settings/allowed-items?pageTotal=true",
+			typ:         &sophoscentral.AllowedItems{},
+			hClient:     hc,
+			token:       token,
+			serviceType: &sophoscentral.EndpointService{},
+			headers: map[string]string{
+				"Content-Type": "application/json",
+				"X-Tenant-ID":  tid,
+			},
+		},
+		//{
+		//	url:         "https://api-us03.central.sophos.com/endpoint/v1/settings/blocked-items?pageTotal=true",
+		//	typ:         &sophoscentral.BlockedItem{},
+		//	hClient:     hc,
+		//	token:       token,
+		//	serviceType: &sophoscentral.EndpointService{},
+		//	headers: map[string]string{
+		//		"Content-Type": "application/json",
+		//		"X-Tenant-ID":  tid,
+		//	},
+		//},
 
+		{
+			url:         "https://api-us03.central.sophos.com/endpoint/v1/settings/tamper-protection",
+			typ:         &sophoscentral.GlobalTamperProtectionEnabled{},
+			hClient:     hc,
+			token:       token,
+			serviceType: &sophoscentral.EndpointService{},
+			headers: map[string]string{
+				"Content-Type": "application/json",
+				"X-Tenant-ID":  tid,
+			},
+		},
+
+	}
 
 	for _, tt := range test {
 
-		err := testType(a, tt.url, tt.typ, tt.hClient, tt.token,  tt.headers)
+		err := testType(a, tt.url, tt.typ, tt.hClient, tt.token, tt.headers)
 		a.NoError(err)
 
 	}
 
 }
-
-
 
 // testType fetches the JSON resource at urlStr and compares its keys to the
 // struct fields of typ.
@@ -105,11 +174,11 @@ func testType(a *assert.Assertions, urlStr string, typ interface{}, hClient *htt
 	slice := reflect.Indirect(reflect.ValueOf(typ)).Kind() == reflect.Slice
 	client := sophoscentral.NewClient(ctx, hClient, token)
 
-	req, err := client.NewRequest("GET", urlStr, nil)
+	req, err := client.NewRequest("GET", urlStr, nil, nil)
 	a.NoError(err)
 
-	for k,v := range headers{
-		req.Header.Set(k,v)
+	for k, v := range headers {
+		req.Header.Set(k, v)
 	}
 	//req.Header.Set("Authorization", fmt.Sprintf("Bearer %s",token.AccessToken))
 	// start with a json.RawMessage so we can decode multiple ways below
@@ -134,7 +203,6 @@ func testType(a *assert.Assertions, urlStr string, typ interface{}, hClient *htt
 	err = json.Unmarshal(*raw, typ)
 	a.NoError(err)
 
-
 	var byt []byte
 	if slice {
 		// use first item in slice
@@ -152,7 +220,6 @@ func testType(a *assert.Assertions, urlStr string, typ interface{}, hClient *htt
 	err = json.Unmarshal(byt, &m2)
 	a.NoError(err)
 
-
 	// now compare the two maps
 	for k, v := range m1 {
 		if *skipURLs && strings.HasSuffix(k, "_url") {
@@ -167,4 +234,46 @@ func testType(a *assert.Assertions, urlStr string, typ interface{}, hClient *htt
 	}
 
 	return nil
+}
+
+func TestEndpointService_ListAllowedItems(t *testing.T) {
+	tenantID := os.Getenv("TYPE_TESTING_TENANT_ID_PASS")
+	tenantURL := "https://api-us03.central.sophos.com"
+
+
+	opts := sophoscentral.ListByPageOffset{
+		Page:      1,
+		PageSize:  0,
+		PageTotal: true,
+	}
+
+	ctx := context.Background()
+
+	ar := sophoscentral.AuthRequest{
+		ClientID:     cid,
+		ClientSecret: cs,
+		TokenURL:     "https://id.sophos.com/api/v2/oauth2/token",
+		Scopes:       []string{"token"},
+		Style:        1,
+	}
+
+	scClient, err := sophoscentral.NewClientNewAuth(ctx, ar, nil)
+	if err != nil{
+		t.Fatal(err)
+	}
+
+	pbo := sophoscentral.PageByOffsetOptions{opts}
+
+
+
+
+	allowedItems, err := scClient.Endpoints.ListAllowedItems(ctx, tenantID, sophoscentral.BaseURL(tenantURL), pbo)
+	if err != nil {
+		t.Error(err)
+	}
+
+
+
+	assert.Equal(t,6, len(allowedItems.Items))
+
 }

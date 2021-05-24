@@ -7,12 +7,12 @@ package sophoscentral
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/google/go-querystring/query"
 	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/clientcredentials"
 	"io"
 	"io/ioutil"
 	"math/rand"
@@ -23,18 +23,71 @@ import (
 	"time"
 )
 
+type BaseURL string
+
 const (
-	defaultBaseURL = "https://api.central.sophos.com/"
-	userAgent      = "rax-sophoscentral"
+	defaultBaseURL BaseURL = "https://api.central.sophos.com/"
+	userAgent              = "rax-sophoscentral"
+	EU01BaseURL    BaseURL = "https://api-eu01.central.sophos.com"
+	EU02BaseURL    BaseURL = "https://api-eu02.central.sophos.com"
+	US01BaseURL    BaseURL = "https://api-us01.central.sophos.com"
+	US02BaseURL    BaseURL = "https://api-us02.central.sophos.com"
+	US03BaseURL    BaseURL = "https://api-us03.central.sophos.com"
 )
+
+type Region string
+
+const (
+	EU01 Region = "eu01"
+	EU02 Region = "eu02"
+	US01 Region = "us01"
+	US02 Region = "us02"
+	US03 Region = "us03"
+)
+
+
+func BuildRegionURLMap() map[Region]BaseURL {
+	r := make(map[Region]BaseURL)
+	r[EU01] = EU01BaseURL
+	r[EU02] = EU02BaseURL
+	r[US01] = US01BaseURL
+	r[US02] = US02BaseURL
+	r[US03] = US03BaseURL
+
+	return r
+
+}
+
+var ErrRegionNotFound = errors.New("region not found")
+
+func RegionFromUrl(baseURL string, rMap map[Region]BaseURL) (Region, error) {
+
+	regionURL := BaseURL(strings.ToLower(baseURL))
+
+	for k, v := range rMap {
+		if regionURL == v {
+			return k, nil
+		}
+	}
+	return "", ErrRegionNotFound
+
+}
 
 var errNonNilContext = errors.New("context must be non-nil")
 
+var BaseURLString func(BaseURL) (string, error) = func(b BaseURL) (string, error) {
+	u, err := url.Parse(string(b))
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%s://%s/", u.Scheme, u.Host), nil
+}
+
 // Client manages communcation with the Sophos Central Api
 type Client struct {
-	Token *oauth2.Token
-
-	client *http.Client
+	Token        *oauth2.Token
+	regionURLMap map[Region]BaseURL
+	httpClient   *http.Client
 
 	BaseURL   *url.URL
 	UserAgent string
@@ -48,16 +101,16 @@ type Client struct {
 	Partner      *PartnerService
 	WhoAmI       *WhoAmIService
 }
-
 type service struct {
-	client *Client
+	client   *Client
+	basePath string
 }
 
 // ListByPageOffset specifies the parameters to methods that support pagination by page offset value
 type ListByPageOffset struct {
-	Page      int `url:"page,omitempty"`
-	PageSize  int `url:"pageSize,omitempty"`
-	PageTotal int `url:"pageTotal,omitempty"`
+	Page      int  `url:"page,omitempty"`
+	PageSize  int  `url:"pageSize,omitempty"`
+	PageTotal bool `url:"pageTotal,omitempty"`
 }
 
 // ListByFromKeyOptions specifies the parameters to methods that support pagination by from-key value
@@ -82,23 +135,57 @@ type PagesByFromKey struct {
 	Items   *int    `json:"items,omitempty"`
 	MaxSize *int    `json:"maxSize,omitempty"`
 }
+type AuthRequest struct {
+	ClientID     string
+	ClientSecret string
+	TokenURL     string
+	Scopes       []string
+	Style        oauth2.AuthStyle
+}
 
-func DecodePageKey(encodedKey string) string {
+func (c *Client) SetBaseURL(u *url.URL) error {
 
-	decodeString, err := base64.StdEncoding.DecodeString(encodedKey) // to []byte
-	if err != nil || decodeString == nil {
-		return ""
+	return c.SetBaseURLFromString(u.String())
+}
+
+func (c *Client) SetBaseURLFromString(s string) error {
+
+	s = EnsureTrailingSlash(s)
+	u, err := url.Parse(s)
+	if err != nil {
+		return err
 	}
-	key := string(decodeString)
-	if key[0] == '[' {
-		key = key[1:]
-	}
-	if key[len(key)-1] == ']' {
-		key = key[:len(key)-1]
-	}
-	return key
+
+	c.BaseURL = u
+	return nil
 
 }
+
+func EnsureTrailingSlash(s string) string {
+
+	if s[len(s)-1:len(s)] != `/` {
+		s += `/`
+	}
+	return s
+}
+
+//
+//func DecodePageKey(encodedKey string) string {
+//
+//	decodeString, err := base64.StdEncoding.DecodeString(encodedKey) // to []byte
+//	if err != nil || decodeString == nil {
+//		return ""
+//	}
+//	key := string(decodeString)
+//	if key[0] == '[' {
+//		key = key[1:]
+//	}
+//	if key[len(key)-1] == ']' {
+//		key = key[:len(key)-1]
+//	}
+//	return key
+//
+//}
 
 // addOptions adds the parameters in opts as URL query parameters to s. opts
 // must be a struct whose fields may contain "url" tags.
@@ -122,18 +209,52 @@ func addOptions(s string, opts interface{}) (string, error) {
 	return u.String(), nil
 }
 
-// NewClient returns a new Sophos Central API client. If a nil httpClient is
-// provided, a new http.Client will be used. To use API methods which require
-// authentication, provide an http.Client that will perform the authentication
-// for you (such as that provided by the golang.org/x/oauth2 library).
-func NewClient(ctx context.Context, hc *http.Client, token *oauth2.Token) *Client {
+func NewAuthToken(ctx context.Context, ar AuthRequest) (*oauth2.Token, error) {
 
-	if ctx == nil {
-		ctx = context.Background()
+	cc := &clientcredentials.Config{
+		ClientID:       ar.ClientID,
+		ClientSecret:   ar.ClientSecret,
+		Scopes:         ar.Scopes,
+		TokenURL:       ar.TokenURL,
+		AuthStyle:      ar.Style,
+		EndpointParams: url.Values{},
 	}
 
-	baseURL, _ := url.Parse(defaultBaseURL)
-	c := &Client{client: hc, BaseURL: baseURL, UserAgent: userAgent}
+	return cc.Token(ctx)
+
+}
+
+
+func NewAuthHttpClient(ctx context.Context, ar AuthRequest, token *oauth2.Token) *http.Client {
+
+	oauthConfig := oauth2.Config{
+		Endpoint: oauth2.Endpoint{
+			TokenURL:  ar.TokenURL,
+			AuthStyle: ar.Style,
+		},
+		Scopes: ar.Scopes,
+	}
+	return oauthConfig.Client(ctx, token)
+
+}
+
+func NewClientNewAuth(ctx context.Context, ar AuthRequest, baseURL *url.URL) (*Client, error) {
+
+	var token *oauth2.Token
+	var err error
+	// get oauth token
+	if token, err = NewAuthToken(ctx, ar); err != nil {
+		fmt.Println("Failed to get new auth token.")
+		fmt.Println("ar: ", PrettyPrint(ar))
+		return nil, err
+	} else {
+		//fmt.Println("Got token: ", len(token.AccessToken))
+	}
+
+	// get oauth httpClient
+	hc := NewAuthHttpClient(ctx, ar, token)
+
+	c := &Client{httpClient: hc, BaseURL: baseURL, UserAgent: userAgent}
 	c.common.client = c
 	c.Common = (*CommonService)(&c.common)
 	c.Endpoints = (*EndpointService)(&c.common)
@@ -142,20 +263,100 @@ func NewClient(ctx context.Context, hc *http.Client, token *oauth2.Token) *Clien
 	c.Partner = (*PartnerService)(&c.common)
 	c.WhoAmI = (*WhoAmIService)(&c.common)
 	c.Token = token
+	c.regionURLMap = BuildRegionURLMap()
+	c.Endpoints.basePath = endpointV1BasePath
 
+	return c, nil
+}
+
+
+/*
+
+Api Rate Limits
+
+10 calls per 1 second
+100 calls per 1 minute
+1000 calls per 1 hour
+200000 calls per 1 day
+
+ */
+
+
+// NewClient returns a new Sophos Central API httpClient. If a nil httpClient is
+// provided, a new http.Client will be used. To use API methods which require
+// authentication, provide an http.Client that will perform the authentication
+// for you (such as that provided by the golang.org/x/oauth2 library).
+func NewClient(ctx context.Context, hc *http.Client, token *oauth2.Token) *Client {
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	//seems redundant, but ensuring that the base url passed in
+	// doesn't include any paths, just scheme + host
+	bURLStr, _ := BaseURLString(defaultBaseURL)
+	baseURL, _ := url.Parse(bURLStr)
+	c := &Client{httpClient: hc, BaseURL: baseURL, UserAgent: userAgent}
+
+	c.common = service{
+		client:   c,
+		basePath: "",
+	}
+	c.Common = (*CommonService)(&c.common)
+	c.Endpoints = (*EndpointService)(&c.common)
+	c.LiveDiscover = (*LiveDiscoverService)(&c.common)
+	c.Organization = (*OrganizationService)(&c.common)
+	c.Partner = (*PartnerService)(&c.common)
+	c.WhoAmI = (*WhoAmIService)(&c.common)
+	c.Token = token
+	c.regionURLMap = BuildRegionURLMap()
+	c.Endpoints.basePath = endpointV1BasePath
 	return c
 }
 
 // NewRequest creates an API request. A relative URL can be provided in urlStr,
 // in which case it is resolved relative to the BaseURL of the Client.
+//
 // Relative URLs should always be specified without a preceding slash. If
 // specified, the value pointed to by body is JSON encoded and included as the
 // request body.
-func (c *Client) NewRequest(method, urlStr string, body interface{}) (*http.Request, error) {
-	if !strings.HasSuffix(c.BaseURL.Path, "/") {
-		return nil, fmt.Errorf("BaseURL must have a trailing slash, but %q does not", c.BaseURL)
+//
+// If the baseURL passed in is different than the client baseURL, the passed in value is
+// used as the base for the included relativeURL.  This seems a bit hackey now.
+func (c *Client) NewRequest(method, relURL string, incomingBaseURL *BaseURL, body interface{}) (*http.Request, error) {
+
+	var burlStr string
+	if c == nil {
+		return nil, errors.New("client is nil inside client.NewRequest")
 	}
-	u, err := c.BaseURL.Parse(urlStr)
+	if c.BaseURL != nil {
+		burlStr = c.BaseURL.String()
+	}
+
+	var err error
+
+	// if there is an incoming base url make sure it isn't empty and then
+	// parse it to get just the scheme and host as base url
+	if incomingBaseURL != nil {
+		if *incomingBaseURL != "" {
+			//seems redundant, but ensuring that the base url passed in
+			// doesn't include any paths, just scheme + host
+			burlStr, err = BaseURLString(*incomingBaseURL)
+			if err != nil {
+				return nil, err
+			}
+
+		}
+	} // end if incomingbaseurl
+
+	bURL, err := url.Parse(burlStr)
+	if err != nil {
+		return nil, err
+	}
+
+	if !strings.HasSuffix(bURL.Path, "/") {
+		return nil, fmt.Errorf("BaseURL must have a trailing slash, but %q does not", bURL)
+	}
+	u, err := bURL.Parse(relURL)
 	if err != nil {
 		return nil, err
 	}
@@ -191,31 +392,10 @@ func (c *Client) NewRequest(method, urlStr string, body interface{}) (*http.Requ
 // pagination links.
 type Response struct {
 	*http.Response
-
-	// These fields provide the page values for paginating through a set of
-	// results. Any or all of these may be set to the zero value for
-	// responses that are not part of a paginated set, or for which there
-	// are no additional pages.
-	//
 	// These fields support what is called "offset pagination" and should
 	// be used with the ListByPageOffset struct.
-	NextPage  int
-	PrevPage  int
-	FirstPage int
-	LastPage  int
 
-	// Additionally, some APIs support "cursor pagination" instead of offset.
-	// This means that a token points directly to the next record which
-	// can lead to O(1) performance compared to O(n) performance provided
-	// by offset pagination.
-	//
-	// For APIs that support cursor pagination (such as
-	// TeamsService.ListIDPGroupsInOrganization), the following field
-	// will be populated to point to the next page.
-	//
-	// To use this token, set ListByFromKeyOptions.Page to this value before
-	// calling the endpoint again.
-	NextPageToken string
+
 }
 
 
@@ -288,14 +468,12 @@ func newResponse(r *http.Response) *Response {
 // The provided ctx must be non-nil, if it is nil an error is returned. If it is
 // canceled or times out, ctx.Err() will be returned.
 func (c *Client) BareDo(ctx context.Context, req *http.Request) (*Response, error) {
+
 	if ctx == nil {
 		return nil, errNonNilContext
 	}
-	req = withContext(ctx, req)
 
-
-
-	resp, err := c.client.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		// If we got an error, and the context has been canceled,
 		// the context's error is probably more useful.
@@ -318,38 +496,37 @@ func (c *Client) BareDo(ctx context.Context, req *http.Request) (*Response, erro
 
 	response := newResponse(resp)
 
+	var sophosError *SophosError = nil
+	var ok bool
 	err = CheckResponse(resp)
 	if err != nil {
 		defer resp.Body.Close()
-		// Special case for AcceptedErrors. If an AcceptedError
-		// has been encountered, the response's payload will be
-		// added to the AcceptedError and returned.
-
-		aerr, ok := err.(*AcceptedError)
-		if ok {
+		sophosError, ok = err.(*SophosError)
+		if !ok {
 			b, readErr := ioutil.ReadAll(resp.Body)
 			if readErr != nil {
 				return response, readErr
 			}
-
-			aerr.Raw = b
-			err = aerr
+			err = errors.New(string(b))
+			return response, err
 		}
+		return response, sophosError
 	}
-	return response, err
+
+	return response, nil
 }
 
-// Do - The provided ctx must be non-nil, if it is nil an error is returned. If it
-// is canceled or times out, ctx.Err() will be returned.
+// Do -
 func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*Response, error) {
 	resp, err := c.BareDo(ctx, req)
-	if err != nil {
 
+	if err != nil {
 		if err.Error() == "Unauthorized" {
 		} else {
 			return resp, err
 		}
 	}
+
 	defer resp.Body.Close()
 
 	switch v := v.(type) {
@@ -384,34 +561,34 @@ func compareHttpResponse(r1, r2 *http.Response) bool {
 }
 
 /*
-An ErrorResponse reports one or more errors caused by an API request.
+An SophosError reports one or more errors caused by an API request.
 Sophos Central API docs: https://developer.sophos.com/intro (search page for 'Error response object')
 */
-type ErrorResponse struct {
-	Response         *http.Response
-	Errors           string    `json:"error,omitempty"`
-	Message          string    `json:"message,omitempty"`
-	CorrelationId    string    `json:"correlationId,omitempty"`
-	Code             string    `json:"code,omitempty"`
-	CreatedAt        time.Time `json:"createdAt,omitempty"`
-	RequestId        string    `json:"requestId,omitempty"`
-	DocumentationURL string    `json:"docUrl,omitempty"`
+type SophosError struct {
+	Response      *http.Response
+	Errors        string `json:"error"`
+	Message       string `json:"message"`
+	CorrelationID string `json:"correlationId"`
+	Code          string `json:"code"`
+	CreatedAt     string `json:"createdAt"`
+	RequestId     string `json:"requestId"`
+	DocUrl        string `json:"docUrl"`
 }
 
-func (r *ErrorResponse) Error() string {
+func (r *SophosError) Error() string {
 	return fmt.Sprintf("%v %v: %d %v %+v",
 		r.Response.Request.Method, sanitizeURL(r.Response.Request.URL),
 		r.Response.StatusCode, r.Message, r.Errors)
 }
 
 // Is returns whether the provided error equals this error.
-func (r *ErrorResponse) Is(target error) bool {
-	v, ok := target.(*ErrorResponse)
+func (r *SophosError) Is(target error) bool {
+	v, ok := target.(*SophosError)
 	if !ok {
 		return false
 	}
 
-	if r.Message != v.Message || (r.DocumentationURL != v.DocumentationURL) ||
+	if r.Message != v.Message || (r.DocUrl != v.DocUrl) ||
 		!compareHttpResponse(r.Response, v.Response) {
 		return false
 	}
@@ -429,25 +606,23 @@ func (r *ErrorResponse) Is(target error) bool {
 	return true
 }
 
-// TwoFactorAuthError occurs when using HTTP Basic Authentication for a user
-// that has two-factor authentication enabled. The request can be reattempted
-// by providing a one-time password in the request.
-type TwoFactorAuthError ErrorResponse
+// AuthenticationError occurs when sophos central returns either a 401 or 403 status code.
+type AuthenticationError SophosError
 
-func (r *TwoFactorAuthError) Error() string { return (*ErrorResponse)(r).Error() }
+func (r *AuthenticationError) Error() string { return (*SophosError)(r).Error() }
 
-// RateLimitError occurs when GitHub returns 403 Forbidden response with a rate limit
-// remaining value of 0.
+// RateLimitError occurs when Sophos Central returns 429 Forbidden response"
 type RateLimitError struct {
-	Rate     Rate           // Rate specifies last known rate limit for the client
 	Response *http.Response // HTTP response that caused this error
 	Message  string         `json:"message"` // error message
+	// RetryAfter dictates the amount of time to wait before retrying the request
+	RetryAfter *time.Duration
 }
 
 func (r *RateLimitError) Error() string {
-	return fmt.Sprintf("%v %v: %d %v %v",
+	return fmt.Sprintf("%v %v: %d %v",
 		r.Response.Request.Method, sanitizeURL(r.Response.Request.URL),
-		r.Response.StatusCode, r.Message, formatRateReset(time.Until(r.Rate.Reset.Time)))
+		r.Response.StatusCode, r.Message)
 }
 
 // Is returns whether the provided error equals this error.
@@ -456,80 +631,69 @@ func (r *RateLimitError) Is(target error) bool {
 	if !ok {
 		return false
 	}
-
-	return r.Rate == v.Rate &&
-		r.Message == v.Message &&
-		compareHttpResponse(r.Response, v.Response)
-}
-
-// AcceptedError occurs when GitHub returns 202 Accepted response with an
-// empty body, which means a job was scheduled on the GitHub side to process
-// the information needed and cache it.
-// Technically, 202 Accepted is not a real error, it's just used to
-// indicate that results are not ready yet, but should be available soon.
-// The request can be repeated after some time.
-type AcceptedError struct {
-	// Raw contains the response body.
-	Raw []byte
-}
-
-func withContext(ctx context.Context, req *http.Request) *http.Request {
-	return req.WithContext(ctx)
-}
-
-func (*AcceptedError) Error() string {
-	return "job scheduled on GitHub side; try again later"
-}
-
-// Is returns whether the provided error equals this error.
-func (ae *AcceptedError) Is(target error) bool {
-	v, ok := target.(*AcceptedError)
-	if !ok {
-		return false
-	}
-	return bytes.Compare(ae.Raw, v.Raw) == 0
-}
-
-// AbuseRateLimitError occurs when Sophos Central returns 429 Forbidden response"
-type AbuseRateLimitError struct {
-	Response *http.Response // HTTP response that caused this error
-	Message  string         `json:"message"` // error message
-
-	// RetryAfter is provided with some abuse rate limit errors. If present,
-	// it is the amount of time that the client should wait before retrying.
-	// Otherwise, the client should try again later (after an unspecified amount of time).
-	RetryAfter *time.Duration
-}
-
-func (r *AbuseRateLimitError) Error() string {
-	return fmt.Sprintf("%v %v: %d %v",
-		r.Response.Request.Method, sanitizeURL(r.Response.Request.URL),
-		r.Response.StatusCode, r.Message)
-}
-
-// Is returns whether the provided error equals this error.
-func (r *AbuseRateLimitError) Is(target error) bool {
-	v, ok := target.(*AbuseRateLimitError)
-	if !ok {
-		return false
-	}
-
 	return r.Message == v.Message &&
 		r.RetryAfter == v.RetryAfter &&
 		compareHttpResponse(r.Response, v.Response)
 }
 
-// sanitizeURL redacts the client_secret parameter from the URL which may be
-// exposed to the user.
+// sanitizeURL redacts identifying information from the URLs in error messages
 func sanitizeURL(uri *url.URL) *url.URL {
 	if uri == nil {
 		return nil
 	}
 	params := uri.Query()
+	if len(params.Get("client_id")) > 0 {
+		params.Set("client_id", "REDACTED")
+		uri.RawQuery = params.Encode()
+	}
+	if len(params.Get("clientId")) > 0 {
+		params.Set("clientId", "REDACTED")
+		uri.RawQuery = params.Encode()
+	}
 	if len(params.Get("client_secret")) > 0 {
 		params.Set("client_secret", "REDACTED")
 		uri.RawQuery = params.Encode()
 	}
+	if len(params.Get("clientSecret")) > 0 {
+		params.Set("clientSecret", "REDACTED")
+		uri.RawQuery = params.Encode()
+	}
+
+	if len(params.Get("endpointId")) > 0 {
+		params.Set("endpointId", "REDACTED")
+		uri.RawQuery = params.Encode()
+	}
+	if len(params.Get("endpoint_id")) > 0 {
+		params.Set("endpoint_id", "REDACTED")
+		uri.RawQuery = params.Encode()
+	}
+	if len(params.Get("organizationId")) > 0 {
+		params.Set("organizationId", "REDACTED")
+		uri.RawQuery = params.Encode()
+	}
+	if len(params.Get("organization_id")) > 0 {
+		params.Set("organization_id", "REDACTED")
+		uri.RawQuery = params.Encode()
+	}
+	if len(params.Get("partnerId")) > 0 {
+		params.Set("partnerId", "REDACTED")
+		uri.RawQuery = params.Encode()
+	}
+	if len(params.Get("partner_id")) > 0 {
+		params.Set("partner_id", "REDACTED")
+		uri.RawQuery = params.Encode()
+	}
+
+	if len(params.Get("tenantId")) > 0 {
+		params.Set("tenantId", "REDACTED")
+		uri.RawQuery = params.Encode()
+	}
+
+	if len(params.Get("tenant_id")) > 0 {
+		params.Set("tenant_id", "REDACTED")
+		uri.RawQuery = params.Encode()
+	}
+
 	return uri
 }
 
@@ -559,33 +723,35 @@ func (e *Error) UnmarshalJSON(data []byte) error {
 
 // CheckResponse checks the API response for errors, and returns them if
 // present. A response is considered an error if it has a status code outside
-// the 200 range or equal to 202 Accepted.
-// API error responses are expected to have response
-// body, and a JSON response body that maps to ErrorResponse.
+// the 200 response range.
+// API error responses are expected to map to a SophosError struct
 //
 // The error type will be *RateLimitError for rate limit exceeded errors,
 // *AcceptedError for 202 Accepted status codes,
 // and *TwoFactorAuthError for two-factor authentication errors.
 func CheckResponse(r *http.Response) error {
-	if r.StatusCode == http.StatusAccepted {
-		return &AcceptedError{}
-	}
+
+	// good status code, no further processing for errors
 	if c := r.StatusCode; 200 <= c && c <= 299 {
 		return nil
 	}
-	errorResponse := &ErrorResponse{Response: r}
+
+	errorResponse := &SophosError{Response: r}
 	data, err := ioutil.ReadAll(r.Body)
 	if err == nil && data != nil {
-		json.Unmarshal(data, errorResponse)
+		err := json.Unmarshal(data, errorResponse)
+		if err != nil {
+
+		}
 	}
 	// Re-populate error response body because Sophos Central error responses could be undocumented
 	r.Body = ioutil.NopCloser(bytes.NewBuffer(data))
 	switch {
 	case r.StatusCode == http.StatusUnauthorized:
-		return (*TwoFactorAuthError)(errorResponse)
+		return (*AuthenticationError)(errorResponse)
 
 	case r.StatusCode == http.StatusTooManyRequests:
-		abuseRateLimitError := &AbuseRateLimitError{
+		abuseRateLimitError := &RateLimitError{
 			Response: errorResponse.Response,
 			Message:  errorResponse.Message,
 		}
@@ -631,12 +797,12 @@ func getRandIntBetween(min, max int) int {
 //	return false, err
 //}
 
-// Rate represents the rate limit for the current client.
+// Rate represents the rate limit for the current httpClient.
 type Rate struct {
-	// The number of requests per hour the client is currently limited to.
+	// The number of requests per hour the httpClient is currently limited to.
 	Limit int `json:"limit"`
 
-	// The number of remaining requests the client can make this hour.
+	// The number of remaining requests the httpClient can make this hour.
 	Remaining int `json:"remaining"`
 
 	// The time at which the current rate limit will reset.
@@ -648,7 +814,7 @@ func (r Rate) String() string {
 }
 
 //
-// RateLimits represents the rate limits for the current client.
+// RateLimits represents the rate limits for the current httpClient.
 type RateLimits struct {
 	Core *Rate `json:"core"`
 }
@@ -676,7 +842,7 @@ func (r RateLimits) String() string {
 //	}
 //}
 
-// RateLimits returns the rate limits for the current client.
+// RateLimits returns the rate limits for the current httpClient.
 //func (c *Client) RateLimits(ctx context.Context) (*RateLimits, *Response, error) {
 //	req, err := c.NewRequest("GET", "rate_limit", nil)
 //	if err != nil {

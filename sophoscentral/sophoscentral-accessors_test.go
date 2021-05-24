@@ -12,14 +12,162 @@ import (
 	"time"
 )
 
-func TestAbuseRateLimitError_GetRetryAfter(tt *testing.T) {
-	var zeroValue time.Duration
-	a := &AbuseRateLimitError{RetryAfter: &zeroValue}
-	a.GetRetryAfter()
-	a = &AbuseRateLimitError{}
-	a.GetRetryAfter()
+func TestAICreatedBy_GetID(tt *testing.T) {
+	var zeroValue string
+	a := &AICreatedBy{ID: &zeroValue}
+	a.GetID()
+	a = &AICreatedBy{}
+	a.GetID()
 	a = nil
-	a.GetRetryAfter()
+	a.GetID()
+}
+
+func TestAICreatedBy_GetName(tt *testing.T) {
+	var zeroValue string
+	a := &AICreatedBy{Name: &zeroValue}
+	a.GetName()
+	a = &AICreatedBy{}
+	a.GetName()
+	a = nil
+	a.GetName()
+}
+
+func TestAIOriginEndpoint_GetID(tt *testing.T) {
+	var zeroValue string
+	a := &AIOriginEndpoint{ID: &zeroValue}
+	a.GetID()
+	a = &AIOriginEndpoint{}
+	a.GetID()
+	a = nil
+	a.GetID()
+}
+
+func TestAllowedItem_GetComment(tt *testing.T) {
+	var zeroValue string
+	a := &AllowedItem{Comment: &zeroValue}
+	a.GetComment()
+	a = &AllowedItem{}
+	a.GetComment()
+	a = nil
+	a.GetComment()
+}
+
+func TestAllowedItem_GetCreatedAt(tt *testing.T) {
+	var zeroValue time.Time
+	a := &AllowedItem{CreatedAt: &zeroValue}
+	a.GetCreatedAt()
+	a = &AllowedItem{}
+	a.GetCreatedAt()
+	a = nil
+	a.GetCreatedAt()
+}
+
+func TestAllowedItem_GetCreatedBy(tt *testing.T) {
+	a := &AllowedItem{}
+	a.GetCreatedBy()
+	a = nil
+	a.GetCreatedBy()
+}
+
+func TestAllowedItem_GetID(tt *testing.T) {
+	var zeroValue string
+	a := &AllowedItem{ID: &zeroValue}
+	a.GetID()
+	a = &AllowedItem{}
+	a.GetID()
+	a = nil
+	a.GetID()
+}
+
+func TestAllowedItem_GetOriginEndpoint(tt *testing.T) {
+	a := &AllowedItem{}
+	a.GetOriginEndpoint()
+	a = nil
+	a.GetOriginEndpoint()
+}
+
+func TestAllowedItem_GetProperties(tt *testing.T) {
+	a := &AllowedItem{}
+	a.GetProperties()
+	a = nil
+	a.GetProperties()
+}
+
+func TestAllowedItem_GetType(tt *testing.T) {
+	var zeroValue string
+	a := &AllowedItem{Type: &zeroValue}
+	a.GetType()
+	a = &AllowedItem{}
+	a.GetType()
+	a = nil
+	a.GetType()
+}
+
+func TestAllowedItem_GetUpdatedAt(tt *testing.T) {
+	var zeroValue time.Time
+	a := &AllowedItem{UpdatedAt: &zeroValue}
+	a.GetUpdatedAt()
+	a = &AllowedItem{}
+	a.GetUpdatedAt()
+	a = nil
+	a.GetUpdatedAt()
+}
+
+func TestAllowedItemProperties_GetCertificateSigner(tt *testing.T) {
+	var zeroValue string
+	a := &AllowedItemProperties{CertificateSigner: &zeroValue}
+	a.GetCertificateSigner()
+	a = &AllowedItemProperties{}
+	a.GetCertificateSigner()
+	a = nil
+	a.GetCertificateSigner()
+}
+
+func TestAllowedItemProperties_GetFileName(tt *testing.T) {
+	var zeroValue string
+	a := &AllowedItemProperties{FileName: &zeroValue}
+	a.GetFileName()
+	a = &AllowedItemProperties{}
+	a.GetFileName()
+	a = nil
+	a.GetFileName()
+}
+
+func TestAllowedItemProperties_GetPath(tt *testing.T) {
+	var zeroValue string
+	a := &AllowedItemProperties{Path: &zeroValue}
+	a.GetPath()
+	a = &AllowedItemProperties{}
+	a.GetPath()
+	a = nil
+	a.GetPath()
+}
+
+func TestAllowedItemProperties_GetSha256(tt *testing.T) {
+	var zeroValue string
+	a := &AllowedItemProperties{Sha256: &zeroValue}
+	a.GetSha256()
+	a = &AllowedItemProperties{}
+	a.GetSha256()
+	a = nil
+	a.GetSha256()
+}
+
+func TestAllowedItems_GetPages(tt *testing.T) {
+	a := &AllowedItems{}
+	a.GetPages()
+	a = nil
+	a.GetPages()
+}
+
+func TestAssignedProduct_GetStatus(tt *testing.T) {
+	var zeroValue string
+	a := &AssignedProduct{Status: &zeroValue}
+	a.GetStatus()
+	a = &AssignedProduct{}
+	a.GetStatus()
+	a = nil
+	a.GetStatus()
 }
 
 func TestAssociatedPerson_GetID(tt *testing.T) {
@@ -42,11 +190,196 @@ func TestAssociatedPerson_GetName(tt *testing.T) {
 	a.GetName()
 }
 
+func TestBICreatedBy_GetID(tt *testing.T) {
+	var zeroValue string
+	b := &BICreatedBy{ID: &zeroValue}
+	b.GetID()
+	b = &BICreatedBy{}
+	b.GetID()
+	b = nil
+	b.GetID()
+}
+
+func TestBICreatedBy_GetName(tt *testing.T) {
+	var zeroValue string
+	b := &BICreatedBy{Name: &zeroValue}
+	b.GetName()
+	b = &BICreatedBy{}
+	b.GetName()
+	b = nil
+	b.GetName()
+}
+
+func TestBIOriginEndpoint_GetID(tt *testing.T) {
+	var zeroValue string
+	b := &BIOriginEndpoint{ID: &zeroValue}
+	b.GetID()
+	b = &BIOriginEndpoint{}
+	b.GetID()
+	b = nil
+	b.GetID()
+}
+
+func TestBlockedItem_GetComment(tt *testing.T) {
+	var zeroValue string
+	b := &BlockedItem{Comment: &zeroValue}
+	b.GetComment()
+	b = &BlockedItem{}
+	b.GetComment()
+	b = nil
+	b.GetComment()
+}
+
+func TestBlockedItem_GetCreatedAt(tt *testing.T) {
+	var zeroValue time.Time
+	b := &BlockedItem{CreatedAt: &zeroValue}
+	b.GetCreatedAt()
+	b = &BlockedItem{}
+	b.GetCreatedAt()
+	b = nil
+	b.GetCreatedAt()
+}
+
+func TestBlockedItem_GetCreatedBy(tt *testing.T) {
+	b := &BlockedItem{}
+	b.GetCreatedBy()
+	b = nil
+	b.GetCreatedBy()
+}
+
+func TestBlockedItem_GetID(tt *testing.T) {
+	var zeroValue string
+	b := &BlockedItem{ID: &zeroValue}
+	b.GetID()
+	b = &BlockedItem{}
+	b.GetID()
+	b = nil
+	b.GetID()
+}
+
+func TestBlockedItem_GetOriginEndpoint(tt *testing.T) {
+	b := &BlockedItem{}
+	b.GetOriginEndpoint()
+	b = nil
+	b.GetOriginEndpoint()
+}
+
+func TestBlockedItem_GetProperties(tt *testing.T) {
+	b := &BlockedItem{}
+	b.GetProperties()
+	b = nil
+	b.GetProperties()
+}
+
+func TestBlockedItem_GetType(tt *testing.T) {
+	var zeroValue string
+	b := &BlockedItem{Type: &zeroValue}
+	b.GetType()
+	b = &BlockedItem{}
+	b.GetType()
+	b = nil
+	b.GetType()
+}
+
+func TestBlockedItem_GetUpdatedAt(tt *testing.T) {
+	var zeroValue time.Time
+	b := &BlockedItem{UpdatedAt: &zeroValue}
+	b.GetUpdatedAt()
+	b = &BlockedItem{}
+	b.GetUpdatedAt()
+	b = nil
+	b.GetUpdatedAt()
+}
+
+func TestBlockedItemProperties_GetCertificateSigner(tt *testing.T) {
+	var zeroValue string
+	b := &BlockedItemProperties{CertificateSigner: &zeroValue}
+	b.GetCertificateSigner()
+	b = &BlockedItemProperties{}
+	b.GetCertificateSigner()
+	b = nil
+	b.GetCertificateSigner()
+}
+
+func TestBlockedItemProperties_GetFileName(tt *testing.T) {
+	var zeroValue string
+	b := &BlockedItemProperties{FileName: &zeroValue}
+	b.GetFileName()
+	b = &BlockedItemProperties{}
+	b.GetFileName()
+	b = nil
+	b.GetFileName()
+}
+
+func TestBlockedItemProperties_GetPath(tt *testing.T) {
+	var zeroValue string
+	b := &BlockedItemProperties{Path: &zeroValue}
+	b.GetPath()
+	b = &BlockedItemProperties{}
+	b.GetPath()
+	b = nil
+	b.GetPath()
+}
+
+func TestBlockedItemProperties_GetSha256(tt *testing.T) {
+	var zeroValue string
+	b := &BlockedItemProperties{Sha256: &zeroValue}
+	b.GetSha256()
+	b = &BlockedItemProperties{}
+	b.GetSha256()
+	b = nil
+	b.GetSha256()
+}
+
+func TestBlockedItems_GetPages(tt *testing.T) {
+	b := &BlockedItems{}
+	b.GetPages()
+	b = nil
+	b.GetPages()
+}
+
 func TestEndpoints_GetPages(tt *testing.T) {
 	e := &Endpoints{}
 	e.GetPages()
 	e = nil
 	e.GetPages()
+}
+
+func TestExemptAllowedItemResponse_GetCreatedAt(tt *testing.T) {
+	var zeroValue string
+	e := &ExemptAllowedItemResponse{CreatedAt: &zeroValue}
+	e.GetCreatedAt()
+	e = &ExemptAllowedItemResponse{}
+	e.GetCreatedAt()
+	e = nil
+	e.GetCreatedAt()
+}
+
+func TestExemptAllowedItemResponse_GetID(tt *testing.T) {
+	var zeroValue string
+	e := &ExemptAllowedItemResponse{ID: &zeroValue}
+	e.GetID()
+	e = &ExemptAllowedItemResponse{}
+	e.GetID()
+	e = nil
+	e.GetID()
+}
+
+func TestExemptAllowedItemResponse_GetProperties(tt *testing.T) {
+	e := &ExemptAllowedItemResponse{}
+	e.GetProperties()
+	e = nil
+	e.GetProperties()
+}
+
+func TestExemptAllowedItemResponse_GetUpdatedAt(tt *testing.T) {
+	var zeroValue string
+	e := &ExemptAllowedItemResponse{UpdatedAt: &zeroValue}
+	e.GetUpdatedAt()
+	e = &ExemptAllowedItemResponse{}
+	e.GetUpdatedAt()
+	e = nil
+	e.GetUpdatedAt()
 }
 
 func TestHealth_GetOverall(tt *testing.T) {
@@ -57,6 +390,66 @@ func TestHealth_GetOverall(tt *testing.T) {
 	h.GetOverall()
 	h = nil
 	h.GetOverall()
+}
+
+func TestIsolationSettings_GetComment(tt *testing.T) {
+	var zeroValue string
+	i := &IsolationSettings{Comment: &zeroValue}
+	i.GetComment()
+	i = &IsolationSettings{}
+	i.GetComment()
+	i = nil
+	i.GetComment()
+}
+
+func TestIsolationSettings_GetEnabled(tt *testing.T) {
+	var zeroValue bool
+	i := &IsolationSettings{Enabled: &zeroValue}
+	i.GetEnabled()
+	i = &IsolationSettings{}
+	i.GetEnabled()
+	i = nil
+	i.GetEnabled()
+}
+
+func TestIsolationSettings_GetLastDisabledAt(tt *testing.T) {
+	var zeroValue string
+	i := &IsolationSettings{LastDisabledAt: &zeroValue}
+	i.GetLastDisabledAt()
+	i = &IsolationSettings{}
+	i.GetLastDisabledAt()
+	i = nil
+	i.GetLastDisabledAt()
+}
+
+func TestIsolationSettings_GetLastEnabledAt(tt *testing.T) {
+	var zeroValue string
+	i := &IsolationSettings{LastEnabledAt: &zeroValue}
+	i.GetLastEnabledAt()
+	i = &IsolationSettings{}
+	i.GetLastEnabledAt()
+	i = nil
+	i.GetLastEnabledAt()
+}
+
+func TestIsolationSettingsUpdate_GetComment(tt *testing.T) {
+	var zeroValue string
+	i := &IsolationSettingsUpdate{Comment: &zeroValue}
+	i.GetComment()
+	i = &IsolationSettingsUpdate{}
+	i.GetComment()
+	i = nil
+	i.GetComment()
+}
+
+func TestIsolationSettingsUpdate_GetEnabled(tt *testing.T) {
+	var zeroValue bool
+	i := &IsolationSettingsUpdate{Enabled: &zeroValue}
+	i.GetEnabled()
+	i = &IsolationSettingsUpdate{}
+	i.GetEnabled()
+	i = nil
+	i.GetEnabled()
 }
 
 func TestItem_GetAssociatedPerson(tt *testing.T) {
@@ -166,6 +559,66 @@ func TestOS_GetBuild(tt *testing.T) {
 	o.GetBuild()
 	o = nil
 	o.GetBuild()
+}
+
+func TestOS_GetPlatform(tt *testing.T) {
+	var zeroValue string
+	o := &OS{Platform: &zeroValue}
+	o.GetPlatform()
+	o = &OS{}
+	o.GetPlatform()
+	o = nil
+	o.GetPlatform()
+}
+
+func TestPageByOffset_GetCurrent(tt *testing.T) {
+	var zeroValue int
+	p := &PageByOffset{Current: &zeroValue}
+	p.GetCurrent()
+	p = &PageByOffset{}
+	p.GetCurrent()
+	p = nil
+	p.GetCurrent()
+}
+
+func TestPageByOffset_GetItems(tt *testing.T) {
+	var zeroValue int
+	p := &PageByOffset{Items: &zeroValue}
+	p.GetItems()
+	p = &PageByOffset{}
+	p.GetItems()
+	p = nil
+	p.GetItems()
+}
+
+func TestPageByOffset_GetMaxsize(tt *testing.T) {
+	var zeroValue int
+	p := &PageByOffset{Maxsize: &zeroValue}
+	p.GetMaxsize()
+	p = &PageByOffset{}
+	p.GetMaxsize()
+	p = nil
+	p.GetMaxsize()
+}
+
+func TestPageByOffset_GetSize(tt *testing.T) {
+	var zeroValue int
+	p := &PageByOffset{Size: &zeroValue}
+	p.GetSize()
+	p = &PageByOffset{}
+	p.GetSize()
+	p = nil
+	p.GetSize()
+}
+
+func TestPageByOffset_GetTotal(tt *testing.T) {
+	var zeroValue int
+	p := &PageByOffset{Total: &zeroValue}
+	p.GetTotal()
+	p = &PageByOffset{}
+	p.GetTotal()
+	p = nil
+	p.GetTotal()
 }
 
 func TestPagesByFromKey_GetFromKey(tt *testing.T) {
@@ -278,11 +731,51 @@ func TestPagesByOffset_GetTotal(tt *testing.T) {
 	p.GetTotal()
 }
 
+func TestRateLimitError_GetRetryAfter(tt *testing.T) {
+	var zeroValue time.Duration
+	r := &RateLimitError{RetryAfter: &zeroValue}
+	r.GetRetryAfter()
+	r = &RateLimitError{}
+	r.GetRetryAfter()
+	r = nil
+	r.GetRetryAfter()
+}
+
 func TestRateLimits_GetCore(tt *testing.T) {
 	r := &RateLimits{}
 	r.GetCore()
 	r = nil
 	r.GetCore()
+}
+
+func TestServiceDetail_GetName(tt *testing.T) {
+	var zeroValue string
+	s := &ServiceDetail{Name: &zeroValue}
+	s.GetName()
+	s = &ServiceDetail{}
+	s.GetName()
+	s = nil
+	s.GetName()
+}
+
+func TestServiceDetail_GetStatus(tt *testing.T) {
+	var zeroValue string
+	s := &ServiceDetail{Status: &zeroValue}
+	s.GetStatus()
+	s = &ServiceDetail{}
+	s.GetStatus()
+	s = nil
+	s.GetStatus()
+}
+
+func TestTamperProtectionSettings_GetPassword(tt *testing.T) {
+	var zeroValue string
+	t := &TamperProtectionSettings{Password: &zeroValue}
+	t.GetPassword()
+	t = &TamperProtectionSettings{}
+	t.GetPassword()
+	t = nil
+	t.GetPassword()
 }
 
 func TestThreats_GetStatus(tt *testing.T) {
@@ -293,4 +786,44 @@ func TestThreats_GetStatus(tt *testing.T) {
 	t.GetStatus()
 	t = nil
 	t.GetStatus()
+}
+
+func TestToggleIsolations_GetComment(tt *testing.T) {
+	var zeroValue string
+	t := &ToggleIsolations{Comment: &zeroValue}
+	t.GetComment()
+	t = &ToggleIsolations{}
+	t.GetComment()
+	t = nil
+	t.GetComment()
+}
+
+func TestToggleIsolations_GetEnabled(tt *testing.T) {
+	var zeroValue bool
+	t := &ToggleIsolations{Enabled: &zeroValue}
+	t.GetEnabled()
+	t = &ToggleIsolations{}
+	t.GetEnabled()
+	t = nil
+	t.GetEnabled()
+}
+
+func TestTPPreviousPasswords_GetInvalidatedAt(tt *testing.T) {
+	var zeroValue string
+	t := &TPPreviousPasswords{InvalidatedAt: &zeroValue}
+	t.GetInvalidatedAt()
+	t = &TPPreviousPasswords{}
+	t.GetInvalidatedAt()
+	t = nil
+	t.GetInvalidatedAt()
+}
+
+func TestTPPreviousPasswords_GetPassword(tt *testing.T) {
+	var zeroValue string
+	t := &TPPreviousPasswords{Password: &zeroValue}
+	t.GetPassword()
+	t = &TPPreviousPasswords{}
+	t.GetPassword()
+	t = nil
+	t.GetPassword()
 }
