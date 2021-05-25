@@ -85,6 +85,7 @@ var BaseURLString func(BaseURL) (string, error) = func(b BaseURL) (string, error
 
 // Client manages communcation with the Sophos Central Api
 type Client struct {
+	ctx context.Context
 	Token        *oauth2.Token
 	regionURLMap map[Region]BaseURL
 	httpClient   *http.Client
@@ -163,7 +164,7 @@ func (c *Client) SetBaseURLFromString(s string) error {
 
 func EnsureTrailingSlash(s string) string {
 
-	if s[len(s)-1:len(s)] != `/` {
+	if s[len(s)-1:] != `/` {
 		s += `/`
 	}
 	return s
@@ -247,8 +248,6 @@ func NewClientNewAuth(ctx context.Context, ar AuthRequest, baseURL *url.URL) (*C
 		fmt.Println("Failed to get new auth token.")
 		fmt.Println("ar: ", PrettyPrint(ar))
 		return nil, err
-	} else {
-		//fmt.Println("Got token: ", len(token.AccessToken))
 	}
 
 	// get oauth httpClient
@@ -295,7 +294,7 @@ func NewClient(ctx context.Context, hc *http.Client, token *oauth2.Token) *Clien
 	// doesn't include any paths, just scheme + host
 	bURLStr, _ := BaseURLString(defaultBaseURL)
 	baseURL, _ := url.Parse(bURLStr)
-	c := &Client{httpClient: hc, BaseURL: baseURL, UserAgent: userAgent}
+	c := &Client{ctx: ctx, httpClient: hc, BaseURL: baseURL, UserAgent: userAgent}
 
 	c.common = service{
 		client:   c,
@@ -496,7 +495,7 @@ func (c *Client) BareDo(ctx context.Context, req *http.Request) (*Response, erro
 
 	response := newResponse(resp)
 
-	var sophosError *SophosError = nil
+	var sophosError *SophosError
 	var ok bool
 	err = CheckResponse(resp)
 	if err != nil {
@@ -740,8 +739,8 @@ func CheckResponse(r *http.Response) error {
 	data, err := ioutil.ReadAll(r.Body)
 	if err == nil && data != nil {
 		err := json.Unmarshal(data, errorResponse)
-		if err != nil {
-
+		if err != nil{
+			return err
 		}
 	}
 	// Re-populate error response body because Sophos Central error responses could be undocumented

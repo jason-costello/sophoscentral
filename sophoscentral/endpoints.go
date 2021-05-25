@@ -222,7 +222,7 @@ type EndpointListOptions struct {
 	IsolationStatus string `url:"isolationStatus,omitempty"`
 
 	// HostnameContains - Find endpoints where the hostname contains the given string.
-	hostnameContains string `url:"hostnameContains,omitempty"`
+	HostnameContains string `url:"hostnameContains,omitempty"`
 
 	// AssociatedPersonsContains - Find endpoints where the name of the person
 	// associated with the endpoint contains the given string.

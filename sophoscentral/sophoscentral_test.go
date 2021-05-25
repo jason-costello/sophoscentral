@@ -11,8 +11,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
-	"path"
-	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -54,15 +52,22 @@ func setup() (client *Client, mux *http.ServeMux, serverURL string, teardown fun
 	// httpClient is the GitHub httpClient being tested and is
 	// configured to use test server.
 	client = NewClient(context.Background(), server.Client(), nil)
+	if client == nil{
+		fmt.Println("failed to create client, client == nil")
+		return
+	}
 	url, err := url.Parse(server.URL + baseURLPath + "/")
 	if err != nil {
 		fmt.Println("failed to parse server.URL + baseURLPath + \"\\\"")
+		return
 	}
-	client.BaseURL = url
+	if url == nil{
+		fmt.Println("failed to generate url, url is nil")
+		return
+	}
+		client.BaseURL = url
 
-	if client == nil {
-		fmt.Println("Failed to generate testing client")
-	}
+
 	return client, mux, server.URL, server.Close
 }
 
@@ -70,28 +75,6 @@ func setup() (client *Client, mux *http.ServeMux, serverURL string, teardown fun
 // In order to ensure the exact file name, this function will create a new temp
 // directory, and create the file in that directory. It is the caller's
 // responsibility to remove the directory and its contents when no longer needed.
-func openTestFile(name, content string) (file *os.File, dir string, err error) {
-	dir, err = ioutil.TempDir("", "sophoscentral")
-	if err != nil {
-		return nil, dir, err
-	}
-
-	file, err = os.OpenFile(path.Join(dir, name), os.O_RDWR|os.O_CREATE|os.O_EXCL, 0600)
-	if err != nil {
-		return nil, dir, err
-	}
-
-	fmt.Fprint(file, content)
-
-	// close and re-open the file to keep file.Stat() happy
-	file.Close()
-	file, err = os.Open(file.Name())
-	if err != nil {
-		return nil, dir, err
-	}
-
-	return file, dir, err
-}
 
 func testMethod(t *testing.T, r *http.Request, want string) {
 	t.Helper()
@@ -100,27 +83,7 @@ func testMethod(t *testing.T, r *http.Request, want string) {
 	}
 }
 
-type values map[string]string
 
-func testFormValues(t *testing.T, r *http.Request, values values) {
-	t.Helper()
-	want := url.Values{}
-	for k, v := range values {
-		want.Set(k, v)
-	}
-
-	r.ParseForm()
-	if got := r.Form; !reflect.DeepEqual(got, want) {
-		t.Errorf("Request parameters: %v, want %v", got, want)
-	}
-}
-
-func testHeader(t *testing.T, r *http.Request, header string, want string) {
-	t.Helper()
-	if got := r.Header.Get(header); got != want {
-		t.Errorf("Header.Get(%q) returned %q, want %q", header, got, want)
-	}
-}
 
 func testURLParseError(t *testing.T, err error) {
 	t.Helper()
@@ -132,71 +95,25 @@ func testURLParseError(t *testing.T, err error) {
 	}
 }
 
-func testBody(t *testing.T, r *http.Request, want string) {
-	t.Helper()
-	b, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		t.Errorf("Error reading request body: %v", err)
-	}
-	if got := string(b); got != want {
-		t.Errorf("request Body is %s, want %s", got, want)
-	}
-}
 
-// Test whether the marshaling of v produces JSON that corresponds
-// to the want string.
-func testJSONMarshal(t *testing.T, v interface{}, want string) {
-	t.Helper()
-	// Unmarshal the wanted JSON, to verify its correctness, and marshal it back
-	// to sort the keys.
-	u := reflect.New(reflect.TypeOf(v)).Interface()
-	if err := json.Unmarshal([]byte(want), &u); err != nil {
-		t.Errorf("Unable to unmarshal JSON for %v: %v", want, err)
-	}
-	w, err := json.Marshal(u)
-	if err != nil {
-		t.Errorf("Unable to marshal JSON for %#v", u)
-	}
 
-	// Marshal the target value.
-	j, err := json.Marshal(v)
-	if err != nil {
-		t.Errorf("Unable to marshal JSON for %#v", v)
-	}
-
-	if string(w) != string(j) {
-		t.Errorf("json.Marshal(%q) returned %s, want %s", v, j, w)
-	}
-}
-
-// Test how bad options are handled. Method f under test should
-// return an error.
-func testBadOptions(t *testing.T, methodName string, f func() error) {
-	t.Helper()
-	if methodName == "" {
-		t.Error("testBadOptions: must supply method methodName")
-	}
-	if err := f(); err == nil {
-		t.Errorf("bad options %v err = nil, want error", methodName)
-	}
-}
 
 func TestNewClient(t *testing.T) {
-	c := NewClient(nil, http.DefaultClient, nil)
+	c := NewClient(context.TODO(), http.DefaultClient, nil)
 
 	if got, want := c.UserAgent, userAgent; got != want {
 		t.Errorf("NewClient UserAgent is %v, want %v", got, want)
 	}
 
 	nhc := new(http.Client)
-	c2 := NewClient(nil, nhc, nil)
+	c2 := NewClient(context.TODO(), nhc, nil)
 	if c.httpClient == c2.httpClient {
 		t.Error("NewClient returned same http.Clients, but they should differ")
 	}
 }
 
 func TestNewRequest_invalidJSON(t *testing.T) {
-	c := NewClient(nil, nil, nil)
+	c := NewClient(context.TODO(), nil, nil)
 
 	type T struct {
 		A map[interface{}]interface{}
@@ -212,13 +129,13 @@ func TestNewRequest_invalidJSON(t *testing.T) {
 }
 
 func TestNewRequest_badURL(t *testing.T) {
-	c := NewClient(nil, nil, nil)
+	c := NewClient(context.TODO(), nil, nil)
 	_, err := c.NewRequest("GET", ":", nil, nil)
 	testURLParseError(t, err)
 }
 
 func TestNewRequest_badMethod(t *testing.T) {
-	c := NewClient(nil, nil, nil)
+	c := NewClient(context.TODO(), nil, nil)
 	if _, err := c.NewRequest("BOGUS\nMETHOD", ".", nil, nil); err == nil {
 		t.Fatal("NewRequest returned nil; expected error")
 	}
@@ -227,7 +144,7 @@ func TestNewRequest_badMethod(t *testing.T) {
 // ensure that no User-Agent header is set if the httpClient's UserAgent is empty.
 // This caused a problem with Google's internal http httpClient.
 func TestNewRequest_emptyUserAgent(t *testing.T) {
-	c := NewClient(nil, nil, nil)
+	c := NewClient(context.TODO(), nil, nil)
 	c.UserAgent = ""
 	req, err := c.NewRequest("GET", ".", nil, nil)
 	if err != nil {
@@ -245,7 +162,7 @@ func TestNewRequest_emptyUserAgent(t *testing.T) {
 // certain cases, intermediate systems may treat these differently resulting in
 // subtle errors.
 func TestNewRequest_emptyBody(t *testing.T) {
-	c := NewClient(nil, nil, nil)
+	c := NewClient(context.TODO(), nil, nil)
 	req, err := c.NewRequest("GET", ".", nil, nil)
 	if err != nil {
 		t.Fatalf("NewRequest returned unexpected error: %v", err)
@@ -263,7 +180,7 @@ func TestNewRequest_errorForNoTrailingSlash(t *testing.T) {
 		{rawurl: "https://example.com/api/v3", wantError: true},
 		{rawurl: "https://example.com/api/v3/", wantError: false},
 	}
-	c := NewClient(nil, nil, nil)
+	c := NewClient(context.TODO(), nil, nil)
 	for _, test := range tests {
 		u, err := url.Parse(test.rawurl)
 		if err != nil {
@@ -312,7 +229,7 @@ func TestDo_nilContext(t *testing.T) {
 	defer teardown()
 
 	req, _ := client.NewRequest("GET", ".", nil, nil)
-	_, err := client.Do(nil, req, nil)
+	_, err := client.Do(context.TODO(), req, nil)
 
 	if !errors.Is(err, errNonNilContext) {
 		t.Errorf("Expected context must be non-nil error")
@@ -602,38 +519,6 @@ func TestAddOptions_QueryValues(t *testing.T) {
 //		t.Fatalf("resp.Body.Close() returned error: %v", err)
 //	}
 //}
-// Test function under NewRequest failure and then s.httpClient.Do failure.
-// Method f should be a regular call that would normally succeed, but
-// should return an error when NewRequest or s.httpClient.Do fails.
-func testNewRequestAndDoFailure(t *testing.T, methodName string, client *Client, f func() (*Response, error)) {
-	t.Helper()
-	if methodName == "" {
-		t.Error("testNewRequestAndDoFailure: must supply method methodName")
-	}
-
-	client.BaseURL.Path = ""
-	resp, err := f()
-	if resp != nil {
-		t.Errorf("httpClient.BaseURL.Path='' %v resp = %#v, want nil", methodName, resp)
-	}
-	if err == nil {
-		t.Errorf("httpClient.BaseURL.Path='' %v err = nil, want error", methodName)
-	}
-
-	//httpClient.BaseURL.Path = "/api-v3/"
-	//httpClient.rateLimits[0].Reset.Time = time.Now().Add(10 * time.Minute)
-	resp, err = f()
-	if want := http.StatusForbidden; resp == nil || resp.Response.StatusCode != want {
-		if resp != nil {
-			t.Errorf("rate.Reset.Time > now %v resp = %#v, want StatusCode=%v", methodName, resp.Response, want)
-		} else {
-			t.Errorf("rate.Reset.Time > now %v resp = nil, want StatusCode=%v", methodName, want)
-		}
-	}
-	if err == nil {
-		t.Errorf("rate.Reset.Time > now %v err = nil, want error", methodName)
-	}
-}
 
 func TestEnsureTrailingSlash(t *testing.T) {
 	type args struct {

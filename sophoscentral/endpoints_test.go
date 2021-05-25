@@ -19,7 +19,7 @@ func TestEndpointService_List(t *testing.T) {
 	mux.HandleFunc("/endpoint/v1/endpoints", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{
+		_,_ = w.Write([]byte(`{
 	"items": [{
 		"id": "endpointid-guid",
 		"type": "server",
@@ -102,6 +102,8 @@ func TestEndpointService_List(t *testing.T) {
 		"maxSize": 500
 	}
 }`))
+
+
 
 	})
 
@@ -228,7 +230,7 @@ func TestEndpointService_Get(t *testing.T) {
 			handlerFunc: func(w http.ResponseWriter, r *http.Request) {
 				testMethod(t, r, "GET")
 				w.Header().Set("Content-Type", "application/json")
-				w.Write([]byte(`{
+				_,_ = w.Write([]byte(`{
 	"id": "endpointid-guid",
 	"type": "server",
 	"tenant": {
@@ -380,7 +382,7 @@ func TestEndpointService_Get(t *testing.T) {
 				testMethod(t, r, "GET")
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(500)
-				w.Write([]byte(`{
+				_,_ = w.Write([]byte(`{
   "error": "string",
   "message": "string",
   "correlationId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
@@ -403,7 +405,7 @@ func TestEndpointService_Get(t *testing.T) {
 				testMethod(t, r, "GET")
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(429)
-				w.Write([]byte(`{
+				_,_ = w.Write([]byte(`{
   "error": "string",
   "message": "string",
   "correlationId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
@@ -445,7 +447,7 @@ func TestEndpointService_Get(t *testing.T) {
 //	mux.HandleFunc("/endpoint/v1/endpoints/endpointid-guid", func(w http.ResponseWriter, r *http.Request) {
 //		testMethod(t, r, "GET")
 //		w.Header().Set("Content-Type", "application/json")
-//		w.Write([]byte(`{
+//		_,_ = w.Write([]byte(`{
 //	"id": "endpointid-guid",
 //	"type": "server",
 //	"tenant": {
@@ -628,7 +630,7 @@ func TestEndpointService_TamperProtection(t *testing.T) {
 			handlerFunc: func(w http.ResponseWriter, r *http.Request) {
 				testMethod(t, r, "GET")
 				w.Header().Set("Content-Type", "application/json")
-				w.Write([]byte(`{
+				_,_ = w.Write([]byte(`{
 					  "password": "password",
 					  "previousPasswords": [
 						{
@@ -669,7 +671,7 @@ func TestEndpointService_TamperProtection(t *testing.T) {
 				testMethod(t, r, "GET")
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(500)
-				w.Write([]byte(`{
+				_,_ = w.Write([]byte(`{
 				"error": "string",
   "message": "string",
   "correlationId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
@@ -724,7 +726,7 @@ func TestEndpointService_SetTamperProtection(t *testing.T) {
 				testMethod(t, r, "POST")
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(201)
-				w.Write([]byte(`{
+				_,_ = w.Write([]byte(`{
   "enabled": true,
   "regeneratePassword": true
 }`))
@@ -803,7 +805,7 @@ func TestEndpointService_GlobalTamperProtectionStatus(t *testing.T) {
 				testMethod(t, r, "GET")
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(200)
-				w.Write([]byte(`{"enabled": true}`))
+				_,_ = w.Write([]byte(`{"enabled": true}`))
 			},
 			client:         nil,
 			want:           &GlobalTamperProtectionEnabled{Enabled: true},
@@ -819,7 +821,7 @@ func TestEndpointService_GlobalTamperProtectionStatus(t *testing.T) {
 				testMethod(t, r, "GET")
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(200)
-				w.Write([]byte(`{"enabled": false}`))
+				_,_ = w.Write([]byte(`{"enabled": false}`))
 			},
 			client:         nil,
 			want:           &GlobalTamperProtectionEnabled{Enabled: false},
@@ -834,7 +836,7 @@ func TestEndpointService_GlobalTamperProtectionStatus(t *testing.T) {
 				testMethod(t, r, "GET")
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(500)
-				w.Write([]byte(`{
+				_,_ = w.Write([]byte(`{
   "error": "can't get global setting'",
   "message": "I'm tired and can't be bothered",
   "correlationId": "59763C8E-B687-47D0-8F7B-88113425CE3B",

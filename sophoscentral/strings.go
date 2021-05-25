@@ -29,7 +29,7 @@ func Stringify(message interface{}) string {
 
 func stringifyValue(w io.Writer, val reflect.Value) {
 	if val.Kind() == reflect.Ptr && val.IsNil() {
-		w.Write([]byte("<nil>"))
+		_,_ = w.Write([]byte("<nil>"))
 		return
 	}
 
@@ -39,20 +39,20 @@ func stringifyValue(w io.Writer, val reflect.Value) {
 	case reflect.String:
 		fmt.Fprintf(w, `"%s"`, v)
 	case reflect.Slice:
-		w.Write([]byte{'['})
+		_,_ = w.Write([]byte{'['})
 		for i := 0; i < v.Len(); i++ {
 			if i > 0 {
-				w.Write([]byte{' '})
+				_,_ = w.Write([]byte{' '})
 			}
 
 			stringifyValue(w, v.Index(i))
 		}
 
-		w.Write([]byte{']'})
+		_,_ = w.Write([]byte{']'})
 		return
 	case reflect.Struct:
 		if v.Type().Name() != "" {
-			w.Write([]byte(v.Type().String()))
+			_,_ = w.Write([]byte(v.Type().String()))
 		}
 
 		// special handling of Timestamp values
@@ -61,7 +61,7 @@ func stringifyValue(w io.Writer, val reflect.Value) {
 			return
 		}
 
-		w.Write([]byte{'{'})
+		_,_ = w.Write([]byte{'{'})
 
 		var sep bool
 		for i := 0; i < v.NumField(); i++ {
@@ -77,17 +77,17 @@ func stringifyValue(w io.Writer, val reflect.Value) {
 			}
 
 			if sep {
-				w.Write([]byte(", "))
+				_,_ = w.Write([]byte(", "))
 			} else {
 				sep = true
 			}
 
-			w.Write([]byte(v.Type().Field(i).Name))
-			w.Write([]byte{':'})
+			_,_ = w.Write([]byte(v.Type().Field(i).Name))
+			_,_ = w.Write([]byte{':'})
 			stringifyValue(w, fv)
 		}
 
-		w.Write([]byte{'}'})
+		_,_ = w.Write([]byte{'}'})
 	default:
 		if v.CanInterface() {
 			fmt.Fprint(w, v.Interface())
