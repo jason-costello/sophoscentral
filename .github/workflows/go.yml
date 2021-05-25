@@ -10,25 +10,56 @@ jobs:
 
   
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+        goVer: [ 1.12 1.13 ]
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - name: Set up Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: 1.16
-    
-    - name: Super-Linter
-      uses: github/super-linter@v3.17.1
-      env:
-        VALIDATE_ALL_CODEBASE: false
-        DEFAULT_BRANCH: main
-        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-    
+      - name: Cache Go modules
+        uses: actions/cache@preview
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-build-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.OS }}-build-${{ env.cache-name }}-
+            ${{ runner.OS }}-build-
+            ${{ runner.OS }}-
+      - name: Set up Go ${{ matrix.goVer }}
+        uses: actions/setup-go@v1
+        with:
+          go-version: ${{ matrix.goVer }}
+          -on: ${{ matrix.os }}
 
-    - name: Build
-      run: go build -v ./...
 
-    - name: Test
-      run: go test -v ./...
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
+
+      - name: Super-Linter
+        uses: github/super-linter@v3.17.1
+        env:
+          VALIDATE_ALL_CODEBASE: false
+          DEFAULT_BRANCH: main
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+      - name: Staticcheck
+        run: |
+          # add executables installed with go get to PATH
+          # TODO: this will hopefully be fixed by
+          # https://github.com/actions/setup-go/issues/14
+          export PATH=${PATH}:`go env GOPATH`/bin
+          go get -u honnef.co/go/tools/cmd/staticcheck
+          staticcheck ./...
+
+      - name: Build
+        run: go build -v ./...
+
+      - name: Test
+        run: go test -v ./...
+
+      - name: Integration Test
+        run: go test ./... -tags=integration
