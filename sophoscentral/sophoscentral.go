@@ -45,7 +45,6 @@ const (
 	US03 Region = "us03"
 )
 
-
 func BuildRegionURLMap() map[Region]BaseURL {
 	r := make(map[Region]BaseURL)
 	r[EU01] = EU01BaseURL
@@ -85,7 +84,7 @@ var BaseURLString func(BaseURL) (string, error) = func(b BaseURL) (string, error
 
 // Client manages communcation with the Sophos Central Api
 type Client struct {
-	ctx context.Context
+	ctx          context.Context
 	Token        *oauth2.Token
 	regionURLMap map[Region]BaseURL
 	httpClient   *http.Client
@@ -225,7 +224,6 @@ func NewAuthToken(ctx context.Context, ar AuthRequest) (*oauth2.Token, error) {
 
 }
 
-
 func NewAuthHttpClient(ctx context.Context, ar AuthRequest, token *oauth2.Token) *http.Client {
 
 	oauthConfig := oauth2.Config{
@@ -268,7 +266,6 @@ func NewClientNewAuth(ctx context.Context, ar AuthRequest, baseURL *url.URL) (*C
 	return c, nil
 }
 
-
 /*
 
 Api Rate Limits
@@ -278,8 +275,7 @@ Api Rate Limits
 1000 calls per 1 hour
 200000 calls per 1 day
 
- */
-
+*/
 
 // NewClient returns a new Sophos Central API httpClient. If a nil httpClient is
 // provided, a new http.Client will be used. To use API methods which require
@@ -394,9 +390,7 @@ type Response struct {
 	// These fields support what is called "offset pagination" and should
 	// be used with the ListByPageOffset struct.
 
-
 }
-
 
 // newResponse creates a new Response for the provided http.Response.
 // r must not be nil.
@@ -739,7 +733,7 @@ func CheckResponse(r *http.Response) error {
 	data, err := ioutil.ReadAll(r.Body)
 	if err == nil && data != nil {
 		err := json.Unmarshal(data, errorResponse)
-		if err != nil{
+		if err != nil {
 			return err
 		}
 	}

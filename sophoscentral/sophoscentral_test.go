@@ -52,7 +52,7 @@ func setup() (client *Client, mux *http.ServeMux, serverURL string, teardown fun
 	// httpClient is the GitHub httpClient being tested and is
 	// configured to use test server.
 	client = NewClient(context.Background(), server.Client(), nil)
-	if client == nil{
+	if client == nil {
 		fmt.Println("failed to create client, client == nil")
 		return
 	}
@@ -61,12 +61,11 @@ func setup() (client *Client, mux *http.ServeMux, serverURL string, teardown fun
 		fmt.Println("failed to parse server.URL + baseURLPath + \"\\\"")
 		return
 	}
-	if url == nil{
+	if url == nil {
 		fmt.Println("failed to generate url, url is nil")
 		return
 	}
-		client.BaseURL = url
-
+	client.BaseURL = url
 
 	return client, mux, server.URL, server.Close
 }
@@ -83,8 +82,6 @@ func testMethod(t *testing.T, r *http.Request, want string) {
 	}
 }
 
-
-
 func testURLParseError(t *testing.T, err error) {
 	t.Helper()
 	if err == nil {
@@ -94,9 +91,6 @@ func testURLParseError(t *testing.T, err error) {
 		t.Errorf("Expected URL parse error, got %+v", err)
 	}
 }
-
-
-
 
 func TestNewClient(t *testing.T) {
 	c := NewClient(context.TODO(), http.DefaultClient, nil)

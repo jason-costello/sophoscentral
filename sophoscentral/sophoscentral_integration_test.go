@@ -16,10 +16,11 @@ import (
 	"strings"
 	"testing"
 )
- var (
-	 cid = os.Getenv("SC_CLIENT_ID_PASS")
-	 cs = os.Getenv("SC_CLIENT_SEC_PASS")
- )
+
+var (
+	cid = os.Getenv("SC_CLIENT_ID_PASS")
+	cs  = os.Getenv("SC_CLIENT_SEC_PASS")
+)
 var skipURLs = flag.Bool("skip_urls", false, "skip url fields")
 
 func TestReturnedTypes(t *testing.T) {
@@ -33,7 +34,6 @@ func TestReturnedTypes(t *testing.T) {
 	//cs := os.Getenv("SC_CLIENT_SEC_PASS")
 	tid := os.Getenv("TYPE_TESTING_TENANT_ID_PASS")
 	eid := os.Getenv("TYPE_TESTING_ENDPOINT_ID_PASS")
-
 
 	//opts := sophoscentral.ListByPageOffset{
 	//	Page:      1,
@@ -55,8 +55,6 @@ func TestReturnedTypes(t *testing.T) {
 	//
 	//
 
-
-
 	////
 	//config := &clientcredentials.Config{
 	//	ClientID:       cid,
@@ -65,7 +63,6 @@ func TestReturnedTypes(t *testing.T) {
 	//	TokenURL:       "https://id.sophos.com/api/v2/oauth2/token",
 	//	EndpointParams: url.Values{},
 	//}
-
 
 	ar := sophoscentral.AuthRequest{
 		ClientID:     cid,
@@ -76,7 +73,7 @@ func TestReturnedTypes(t *testing.T) {
 	}
 
 	scClient, err := sophoscentral.NewClientNewAuth(ctx, ar, nil)
-	if err != nil{
+	if err != nil {
 		t.Fatal(err)
 	}
 	token := scClient.Token
@@ -89,7 +86,6 @@ func TestReturnedTypes(t *testing.T) {
 		Scopes: []string{"token"},
 	}
 	hc := oauthConfig.Client(ctx, token)
-
 
 	test := []struct {
 		url         string
@@ -155,7 +151,6 @@ func TestReturnedTypes(t *testing.T) {
 				"X-Tenant-ID":  tid,
 			},
 		},
-
 	}
 
 	for _, tt := range test {
@@ -240,7 +235,6 @@ func TestEndpointService_ListAllowedItems(t *testing.T) {
 	tenantID := os.Getenv("TYPE_TESTING_TENANT_ID_PASS")
 	tenantURL := "https://api-us03.central.sophos.com"
 
-
 	opts := sophoscentral.ListByPageOffset{
 		Page:      1,
 		PageSize:  0,
@@ -258,29 +252,24 @@ func TestEndpointService_ListAllowedItems(t *testing.T) {
 	}
 
 	scClient, err := sophoscentral.NewClientNewAuth(ctx, ar, nil)
-	if err != nil{
+	if err != nil {
 		t.Fatal(err)
 	}
 
 	pbo := sophoscentral.PageByOffsetOptions{opts}
-
-
-
 
 	allowedItems, err := scClient.Endpoints.ListAllowedItems(ctx, tenantID, sophoscentral.BaseURL(tenantURL), pbo)
 	if err != nil {
 		t.Error(err)
 	}
 
-
-
-	assert.Equal(t,6, len(allowedItems.Items))
+	assert.Equal(t, 6, len(allowedItems.Items))
 
 }
 func TestNewAuthToken(t *testing.T) {
 	var (
 		cid = os.Getenv("SC_CLIENT_ID_PASS")
-		cs = os.Getenv("SC_CLIENT_SEC_PASS")
+		cs  = os.Getenv("SC_CLIENT_SEC_PASS")
 	)
 	type args struct {
 		ctx context.Context
@@ -293,7 +282,7 @@ func TestNewAuthToken(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:"auth test",
+			name: "auth test",
 			args: args{
 				ctx: context.Background(),
 				ar: AuthRequest{
@@ -303,7 +292,7 @@ func TestNewAuthToken(t *testing.T) {
 					Scopes:       []string{"token"},
 					Style:        1,
 				}},
-			want: time.Now().UTC(),
+			want:    time.Now().UTC(),
 			wantErr: false,
 		},
 	}
@@ -315,7 +304,7 @@ func TestNewAuthToken(t *testing.T) {
 				return
 			}
 			assert.NotNil(t, got)
-			assert.Greater(t, got.Expiry.UTC().Sub(tt.want).Seconds(),float64(3000))
+			assert.Greater(t, got.Expiry.UTC().Sub(tt.want).Seconds(), float64(3000))
 			// assert.Equal(t, tt.want, got.Expiry.UTC().Format(time.RFC3339))
 		})
 	}
