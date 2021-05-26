@@ -11,12 +11,11 @@ type AllowedItemPatchReq struct {
 }
 
 // UpdateAllowedItem by id
-func (e *EndpointService) UpdateAllowedItem(ctx context.Context, tenantID string, tenantURL BaseURL, allowedItemID string) (*EPSettingItem, error) {
+func (e *EndpointService) UpdateAllowedItem(ctx context.Context, tenantID string, tenantURL BaseURL, allowedItemID string, aip AllowedItemPatchReq) (*EPSettingItem, *Response, error) {
 	path := fmt.Sprintf("%ssettings/allowed-items/%s", e.basePath, allowedItemID)
-	aip := new(AllowedItemPatchReq)
 	req, err := e.client.NewRequest(ctx, "PATCH", path, &tenantURL, aip)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	req.Header.Set("X-Tenant-ID", tenantID)
@@ -24,11 +23,11 @@ func (e *EndpointService) UpdateAllowedItem(ctx context.Context, tenantID string
 
 	resp, err := e.client.Do(ctx, req, updatedItem)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if resp.StatusCode != 200 {
-		return nil, errors.New(resp.Status)
+		return nil,resp, errors.New(resp.Status)
 	}
-	return updatedItem, nil
+	return updatedItem, resp, nil
 }

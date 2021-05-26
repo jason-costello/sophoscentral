@@ -8,26 +8,25 @@ import (
 
 // IntrusionPreventionExclusionDelete - delete intrusion prevention exclusion by id
 // https://api-{dataRegion}.central.sophos.com/endpoint/v1/settings/exclusions/intrusion-prevention/{exclusionId}
-func (e *EndpointService) IntrusionPreventionExclusionDelete(ctx context.Context, tenantID string, tenantURL BaseURL, exclusionID string) (*DeletedResponse, error) {
+func (e *EndpointService) IntrusionPreventionExclusionDelete(ctx context.Context, tenantID string, tenantURL BaseURL, exclusionID string) (*DeletedResponse, *Response, error) {
 	path := fmt.Sprintf("%ssettings/exclusions/intrusion-prevention/%s", e.basePath, exclusionID)
 
 
 	req, err := e.client.NewRequest(ctx, "DELETE", path, &tenantURL, nil)
 	if err != nil {
-		return nil, err
+		return nil,nil, err
 	}
 
 	req.Header.Set("X-Tenant-ID", tenantID)
 	req.Header.Set("Content-Type", "application/json")
 
-	e.client.Token.SetAuthHeader(req)
 	ipe := new(DeletedResponse)
-	_, err = e.client.Do(ctx, req, ipe)
+	resp, err := e.client.Do(ctx, req, ipe)
 	if err != nil {
-		return nil, err
+		return nil, resp,err
 	}
 
-	return ipe, nil
+	return ipe,resp,  nil
 
 
 }

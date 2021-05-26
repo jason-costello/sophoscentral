@@ -17,9 +17,9 @@ type TPPreviousPasswords struct {
 
 
 
-// TamperProtection fetches the TamperProtection settings for a specific endpoint
+// TamperProtectionGet fetches the TamperProtection settings for a specific endpoint
 // https://api-{dataRegion}.central.sophos.com/endpoint/v1/endpoints/{endpointId}/tamper-protection
-func (e *EndpointService) TamperProtection(ctx context.Context, tenantID string, tenantURL BaseURL, endpointID string) (*TamperProtectionSettings, *Response, error) {
+func (e *EndpointService) TamperProtectionGet(ctx context.Context, tenantID string, tenantURL BaseURL, endpointID string) (*TamperProtectionSettings, *Response, error) {
 
 	path := fmt.Sprintf("%sendpoints/%s/tamper-protection", e.basePath, endpointID)
 

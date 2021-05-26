@@ -42,11 +42,51 @@ func TestAssociatedPerson_GetName(tt *testing.T) {
 	a.GetName()
 }
 
+func TestDetectedExploit_GetFirstSeenAt(tt *testing.T) {
+	var zeroValue string
+	d := &DetectedExploit{FirstSeenAt: &zeroValue}
+	d.GetFirstSeenAt()
+	d = &DetectedExploit{}
+	d.GetFirstSeenAt()
+	d = nil
+	d.GetFirstSeenAt()
+}
+
+func TestDetectedExploit_GetLastSeenAt(tt *testing.T) {
+	var zeroValue string
+	d := &DetectedExploit{LastSeenAt: &zeroValue}
+	d.GetLastSeenAt()
+	d = &DetectedExploit{}
+	d.GetLastSeenAt()
+	d = nil
+	d.GetLastSeenAt()
+}
+
 func TestEndpoints_GetPages(tt *testing.T) {
 	e := &Endpoints{}
 	e.GetPages()
 	e = nil
 	e.GetPages()
+}
+
+func TestExploitMitigationAppItem_GetID(tt *testing.T) {
+	var zeroValue string
+	e := &ExploitMitigationAppItem{ID: &zeroValue}
+	e.GetID()
+	e = &ExploitMitigationAppItem{}
+	e.GetID()
+	e = nil
+	e.GetID()
+}
+
+func TestExploitMitigationAppItem_GetName(tt *testing.T) {
+	var zeroValue string
+	e := &ExploitMitigationAppItem{Name: &zeroValue}
+	e.GetName()
+	e = &ExploitMitigationAppItem{}
+	e.GetName()
+	e = nil
+	e.GetName()
 }
 
 func TestHealth_GetOverall(tt *testing.T) {
@@ -59,7 +99,7 @@ func TestHealth_GetOverall(tt *testing.T) {
 	h.GetOverall()
 }
 
-func TestIntPrevExclusionItem_GetComment(tt *testing.T) {
+func TestIntrusionPreventionsExclusionItem_GetComment(tt *testing.T) {
 	var zeroValue string
 	i := &IntrusionPreventionsExclusionItem{Comment: &zeroValue}
 	i.GetComment()
@@ -69,14 +109,14 @@ func TestIntPrevExclusionItem_GetComment(tt *testing.T) {
 	i.GetComment()
 }
 
-func TestIntPrevExclusionItem_GetDirection(tt *testing.T) {
+func TestIntrusionPreventionsExclusionItem_GetDirection(tt *testing.T) {
 	i := &IntrusionPreventionsExclusionItem{}
 	i.GetDirection()
 	i = nil
 	i.GetDirection()
 }
 
-func TestIntPrevExclusionItem_GetID(tt *testing.T) {
+func TestIntrusionPreventionsExclusionItem_GetID(tt *testing.T) {
 	var zeroValue string
 	i := &IntrusionPreventionsExclusionItem{ID: &zeroValue}
 	i.GetID()
@@ -86,11 +126,48 @@ func TestIntPrevExclusionItem_GetID(tt *testing.T) {
 	i.GetID()
 }
 
-func TestIntPrevExclusionItem_GetType(tt *testing.T) {
+func TestIntrusionPreventionsExclusionItem_GetType(tt *testing.T) {
 	var zeroValue string
 	i := &IntrusionPreventionsExclusionItem{Type: &zeroValue}
 	i.GetType()
 	i = &IntrusionPreventionsExclusionItem{}
+	i.GetType()
+	i = nil
+	i.GetType()
+}
+
+func TestIsolationExclusionItem_GetComment(tt *testing.T) {
+	var zeroValue string
+	i := &IsolationExclusionItem{Comment: &zeroValue}
+	i.GetComment()
+	i = &IsolationExclusionItem{}
+	i.GetComment()
+	i = nil
+	i.GetComment()
+}
+
+func TestIsolationExclusionItem_GetDirection(tt *testing.T) {
+	i := &IsolationExclusionItem{}
+	i.GetDirection()
+	i = nil
+	i.GetDirection()
+}
+
+func TestIsolationExclusionItem_GetID(tt *testing.T) {
+	var zeroValue string
+	i := &IsolationExclusionItem{ID: &zeroValue}
+	i.GetID()
+	i = &IsolationExclusionItem{}
+	i.GetID()
+	i = nil
+	i.GetID()
+}
+
+func TestIsolationExclusionItem_GetType(tt *testing.T) {
+	var zeroValue string
+	i := &IsolationExclusionItem{Type: &zeroValue}
+	i.GetType()
+	i = &IsolationExclusionItem{}
 	i.GetType()
 	i = nil
 	i.GetType()
@@ -450,6 +527,70 @@ func TestRateLimits_GetCore(tt *testing.T) {
 	r.GetCore()
 	r = nil
 	r.GetCore()
+}
+
+func TestScanningExclusionItem_GetComment(tt *testing.T) {
+	var zeroValue string
+	s := &ScanningExclusionItem{Comment: &zeroValue}
+	s.GetComment()
+	s = &ScanningExclusionItem{}
+	s.GetComment()
+	s = nil
+	s.GetComment()
+}
+
+func TestScanningExclusionItem_GetDescription(tt *testing.T) {
+	var zeroValue string
+	s := &ScanningExclusionItem{Description: &zeroValue}
+	s.GetDescription()
+	s = &ScanningExclusionItem{}
+	s.GetDescription()
+	s = nil
+	s.GetDescription()
+}
+
+func TestScanningExclusionItem_GetDirection(tt *testing.T) {
+	s := &ScanningExclusionItem{}
+	s.GetDirection()
+	s = nil
+	s.GetDirection()
+}
+
+func TestScanningExclusionItem_GetID(tt *testing.T) {
+	var zeroValue string
+	s := &ScanningExclusionItem{ID: &zeroValue}
+	s.GetID()
+	s = &ScanningExclusionItem{}
+	s.GetID()
+	s = nil
+	s.GetID()
+}
+
+func TestScanningExclusionItem_GetType(tt *testing.T) {
+	s := &ScanningExclusionItem{}
+	s.GetType()
+	s = nil
+	s.GetType()
+}
+
+func TestScanningExclusionUpdateItem_GetComment(tt *testing.T) {
+	var zeroValue string
+	s := &ScanningExclusionUpdateItem{Comment: &zeroValue}
+	s.GetComment()
+	s = &ScanningExclusionUpdateItem{}
+	s.GetComment()
+	s = nil
+	s.GetComment()
+}
+
+func TestScanningExclusionUpdateItem_GetValue(tt *testing.T) {
+	var zeroValue string
+	s := &ScanningExclusionUpdateItem{Value: &zeroValue}
+	s.GetValue()
+	s = &ScanningExclusionUpdateItem{}
+	s.GetValue()
+	s = nil
+	s.GetValue()
 }
 
 func TestServiceDetail_GetName(tt *testing.T) {

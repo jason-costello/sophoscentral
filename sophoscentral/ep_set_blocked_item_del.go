@@ -8,26 +8,26 @@ import (
 
 // DeleteBlockedItem  deletes a blocked item by item
 // https://api-{dataRegion}.central.sophos.com/endpoint/v1/settings/blocked-items/{blockedItemId}
-func (e *EndpointService) DeleteBlockedItem(ctx context.Context, tenantID string, tenantURL BaseURL, blockedItemID string) (*DeletedResponse, error) {
+func (e *EndpointService) DeleteBlockedItem(ctx context.Context, tenantID string, tenantURL BaseURL, blockedItemID string) (*DeletedResponse, *Response, error) {
 	// url path to call
-	path := fmt.Sprintf("%ssettings/allowed-items/%s", e.basePath, blockedItemID)
+	path := fmt.Sprintf("%ssettings/blocked-items/%s", e.basePath, blockedItemID)
 
 	if blockedItemID == "" {
-		return nil, errors.New("blockedItemID is empty")
+		return nil, nil,errors.New("blockedItemID is empty")
 	}
 
 	req, err := e.client.NewRequest(ctx, "DELETE", path, &tenantURL, nil)
 	if err != nil {
-		return nil, err
+		return nil,nil, err
 	}
 
 	req.Header.Set("X-Tenant-ID", tenantID)
 
 	dr := new(DeletedResponse)
-	_, err = e.client.Do(ctx, req, dr)
+	resp, err := e.client.Do(ctx, req, dr)
 	if err != nil {
-		return nil, err
+		return nil,resp, err
 	}
-	return dr, nil
+	return dr, resp, nil
 
 }

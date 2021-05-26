@@ -15,7 +15,9 @@ const Both ExclusionDirections = "both"
 type IntrusionPreventionExclusionItems struct{
 	Items []IntrusionPreventionsExclusionItem `json:"items"`
 	PagesByOffset `json:"pages,omitempty"`
-
+}
+func (e ExclusionDirections) ToPtr()*ExclusionDirections{
+	return &e
 }
 type IntrusionPreventionsExclusionItem struct{
 	// ID is exclusion ID - matches [a-f0-9]{64}

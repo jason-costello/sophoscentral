@@ -17,13 +17,19 @@ const(
 	AMSI ScanningExclusionType = "amsi"
 	Behavioral ScanningExclusionType = "behavioral"
 )
+func (s ScanningExclusionType) ToPtr() *ScanningExclusionType{
+
+	return &s
+}
 type ScanMode string
 const(
 	OnDemand ScanMode = "onDemand"
 	OnAccess ScanMode = "onAccess"
 	OnDemandAndOnAccess ScanMode = "onDemandAndOnAccess"
 )
-
+func (s ScanMode) ToPtr() *ScanMode{
+	return &s
+}
 type ScanningExclusionGetOptions struct {
 	ListByPageOffset
 	// Type - scanning exclusion type
@@ -59,6 +65,14 @@ type ScanningExclusionItem struct{
 	// Comment indicating why the exclusion was created.
 	Comment *string `json:"comment,omitempty"`
 
+}
+type ScanningExclusionUpdateResponse struct {
+	ScanMode    string `json:"scanMode"`
+	Description string `json:"description"`
+	Comment     string `json:"comment"`
+	Id          string `json:"id"`
+	Type        string `json:"type"`
+	Value       string `json:"value"`
 }
 // ScanningExclusionList - List all scanning exclusions.
 // Pagination is using page by offset.

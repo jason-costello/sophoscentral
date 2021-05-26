@@ -5,12 +5,12 @@ import (
 	"errors"
 	"fmt"
 )
-// SetTamperProtection Turns Tamper Protection on or off on an
+// TamperProtectionToggle Turns Tamper Protection on or off on an
 // endpoint. Or generates a new Tamper Protection password.
 // Note that Tamper Protection can be turned on for an endpoint
 // only if it has also been turned on globally.
 
-func (e *EndpointService) SetTamperProtection(ctx context.Context, tenantID string, tenantURL BaseURL, endpointID string) (*TamperProtectionSettings, *Response, error) {
+func (e *EndpointService) TamperProtectionToggle(ctx context.Context, tenantID string, tenantURL BaseURL, endpointID string) (*TamperProtectionSettings, *Response, error) {
 
 	path := fmt.Sprintf("%sendpoints/%s/tamper-protection", e.basePath, endpointID)
 

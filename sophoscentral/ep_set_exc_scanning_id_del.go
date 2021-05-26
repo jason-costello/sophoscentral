@@ -7,22 +7,23 @@ import (
 
 // ScanningExclusionDelete - Deletes a scanning exclusion. by exclusion ID.
 // https://api-{dataRegion}.central.sophos.com/endpoint/v1/settings/exclusions/scanning/{exclusionId}
-func (e *EndpointService) ScanningExclusionDelete(ctx context.Context, tenantID string,  tenantURL BaseURL, exclusionID string) (*DeletedResponse, error) {
+func (e *EndpointService) ScanningExclusionDelete(ctx context.Context, tenantID string,  tenantURL BaseURL, exclusionID string) (*DeletedResponse, *Response, error) {
 	path := fmt.Sprintf("%ssettings/exclusions/scanning/%s", e.basePath, exclusionID)
 
-	req, err := e.client.NewRequest(ctx, "GET", path, &tenantURL, nil)
+	req, err := e.client.NewRequest(ctx, "DELETE", path, &tenantURL, nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	req.Header.Set("X-Tenant-ID", tenantID)
 	req.Header.Set("Content-Type", "application/json")
-	e.client.Token.SetAuthHeader(req)
+
 	dr := new(DeletedResponse)
-	_, err = e.client.Do(ctx, req, dr)
+
+	resp, err := e.client.Do(ctx, req, dr)
 	if err != nil {
-		return nil, err
+		return nil,resp, err
 	}
 
-	return dr, nil
+	return dr, resp, nil
 
 }

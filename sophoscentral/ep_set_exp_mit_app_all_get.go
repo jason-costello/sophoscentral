@@ -36,6 +36,7 @@ type ExploitMitigationAppItem struct{
 	Modifications ExploitMitigationAppMods `json:"modifications,omitempty"`
 }
 
+
 // ExploitMitigationAppMods potential modifications for a detected Exploit Mitigation Application.
 // This object does not apply to when type is custom.
 type ExploitMitigationAppMods struct {

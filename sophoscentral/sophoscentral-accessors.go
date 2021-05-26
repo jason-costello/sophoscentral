@@ -35,12 +35,44 @@ func (a *AssociatedPerson) GetName() string {
 	return *a.Name
 }
 
+// GetFirstSeenAt returns the FirstSeenAt field if it's non-nil, zero value otherwise.
+func (d *DetectedExploit) GetFirstSeenAt() string {
+	if d == nil || d.FirstSeenAt == nil {
+		return ""
+	}
+	return *d.FirstSeenAt
+}
+
+// GetLastSeenAt returns the LastSeenAt field if it's non-nil, zero value otherwise.
+func (d *DetectedExploit) GetLastSeenAt() string {
+	if d == nil || d.LastSeenAt == nil {
+		return ""
+	}
+	return *d.LastSeenAt
+}
+
 // GetPages returns the Pages field.
 func (e *Endpoints) GetPages() *PagesByFromKey {
 	if e == nil {
 		return nil
 	}
 	return e.Pages
+}
+
+// GetID returns the ID field if it's non-nil, zero value otherwise.
+func (e *ExploitMitigationAppItem) GetID() string {
+	if e == nil || e.ID == nil {
+		return ""
+	}
+	return *e.ID
+}
+
+// GetName returns the Name field if it's non-nil, zero value otherwise.
+func (e *ExploitMitigationAppItem) GetName() string {
+	if e == nil || e.Name == nil {
+		return ""
+	}
+	return *e.Name
 }
 
 // GetOverall returns the Overall field if it's non-nil, zero value otherwise.
@@ -77,6 +109,38 @@ func (i *IntrusionPreventionsExclusionItem) GetID() string {
 
 // GetType returns the Type field if it's non-nil, zero value otherwise.
 func (i *IntrusionPreventionsExclusionItem) GetType() string {
+	if i == nil || i.Type == nil {
+		return ""
+	}
+	return *i.Type
+}
+
+// GetComment returns the Comment field if it's non-nil, zero value otherwise.
+func (i *IsolationExclusionItem) GetComment() string {
+	if i == nil || i.Comment == nil {
+		return ""
+	}
+	return *i.Comment
+}
+
+// GetDirection returns the Direction field.
+func (i *IsolationExclusionItem) GetDirection() *ExclusionDirections {
+	if i == nil {
+		return nil
+	}
+	return i.Direction
+}
+
+// GetID returns the ID field if it's non-nil, zero value otherwise.
+func (i *IsolationExclusionItem) GetID() string {
+	if i == nil || i.ID == nil {
+		return ""
+	}
+	return *i.ID
+}
+
+// GetType returns the Type field if it's non-nil, zero value otherwise.
+func (i *IsolationExclusionItem) GetType() string {
 	if i == nil || i.Type == nil {
 		return ""
 	}
@@ -385,6 +449,62 @@ func (r *RateLimits) GetCore() *Rate {
 		return nil
 	}
 	return r.Core
+}
+
+// GetComment returns the Comment field if it's non-nil, zero value otherwise.
+func (s *ScanningExclusionItem) GetComment() string {
+	if s == nil || s.Comment == nil {
+		return ""
+	}
+	return *s.Comment
+}
+
+// GetDescription returns the Description field if it's non-nil, zero value otherwise.
+func (s *ScanningExclusionItem) GetDescription() string {
+	if s == nil || s.Description == nil {
+		return ""
+	}
+	return *s.Description
+}
+
+// GetDirection returns the Direction field.
+func (s *ScanningExclusionItem) GetDirection() *ExclusionDirections {
+	if s == nil {
+		return nil
+	}
+	return s.Direction
+}
+
+// GetID returns the ID field if it's non-nil, zero value otherwise.
+func (s *ScanningExclusionItem) GetID() string {
+	if s == nil || s.ID == nil {
+		return ""
+	}
+	return *s.ID
+}
+
+// GetType returns the Type field.
+func (s *ScanningExclusionItem) GetType() *ScanningExclusionType {
+	if s == nil {
+		return nil
+	}
+	return s.Type
+}
+
+// GetComment returns the Comment field if it's non-nil, zero value otherwise.
+func (s *ScanningExclusionUpdateItem) GetComment() string {
+	if s == nil || s.Comment == nil {
+		return ""
+	}
+	return *s.Comment
+}
+
+// GetValue returns the Value field if it's non-nil, zero value otherwise.
+func (s *ScanningExclusionUpdateItem) GetValue() string {
+	if s == nil || s.Value == nil {
+		return ""
+	}
+	return *s.Value
 }
 
 // GetName returns the Name field if it's non-nil, zero value otherwise.

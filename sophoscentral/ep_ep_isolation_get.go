@@ -7,18 +7,19 @@ import (
 
 // IsolationSettings something
 type IsolationSettings struct {
-	LastDisabledBy interface{} `json:"lastDisabledBy,omitempty"`
-	LastEnabledBy  struct {
-		AccountID   *string `json:"accountId,omitempty"`
-		AccountType *string `json:"accountType,omitempty"`
-		Name        *string `json:"name,omitempty"`
-		ID          *string `json:"id,omitempty"`
-		Type        *string `json:"type,omitempty"`
-	} `json:"lastEnabledBy,omitempty"`
+	LastDisabledBy *LastEnabledDisabledBy `json:"lastDisabledBy,omitempty"`
+	LastEnabledBy  *LastEnabledDisabledBy`json:"lastEnabledBy,omitempty"`
 	Comment        *string `json:"comment,omitempty"`
 	LastEnabledAt  *string `json:"lastEnabledAt,omitempty"`
 	LastDisabledAt *string `json:"lastDisabledAt,omitempty"`
 	Enabled        *bool   `json:"enabled,omitempty"`
+}
+type LastEnabledDisabledBy struct{
+	AccountID   *string `json:"accountId,omitempty"`
+	AccountType *string `json:"accountType,omitempty"`
+	Name        *string `json:"name,omitempty"`
+	ID          *string `json:"id,omitempty"`
+	Type        *string `json:"type,omitempty"`
 }
 type ToggleIsolations struct {
 	Enabled *bool    `json:"enabled,omitempty"`

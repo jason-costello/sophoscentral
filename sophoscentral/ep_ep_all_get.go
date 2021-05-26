@@ -1,11 +1,9 @@
 package sophoscentral
 
-
 import (
 	"context"
 	"encoding/json"
 	"errors"
-	"time"
 )
 
 // Endpoints contains the returned data from the EndpointsService.List
@@ -255,9 +253,9 @@ type EndpointListOptions struct {
 	View []string `url:"view,omitempty"`
 }
 
-// List gathers all endpoints for a tenant ID
+// List gathers page of endpoints for a tenant ID
 // https://api-{region}.central.sophos.com/endpoint/v1/endpoints
-func (e *EndpointService) List(ctx context.Context, tenantID string,  tenantURL BaseURL, endpoints *Endpoints, opts EndpointListOptions) (*Endpoints, []*Response, error) {
+func (e *EndpointService) List(ctx context.Context, tenantID string, tenantURL BaseURL, opts EndpointListOptions) (*Endpoints, []*Response, error) {
 
 	// url path to call
 	path := e.basePath + "endpoints"
@@ -292,28 +290,6 @@ func (e *EndpointService) List(ctx context.Context, tenantID string,  tenantURL 
 	}
 	responses = append(responses, resp)
 
-	endpoints.Items = append(endpoints.Items, eps.Items...)
-	endpoints.Pages = eps.Pages
-
-	if eps.Pages.GetNextKey() != "" {
-		opts = EndpointListOptions{
-			HealthStatus: "",
-			Type:         "",
-			ListByFromKeyOptions: ListByFromKeyOptions{
-				PageFromKey: eps.Pages.GetNextKey(),
-				PageSize:    500,
-				PageTotal:   true,
-			},
-		}
-
-		rep, res, err := e.List(ctx, tenantID, tenantURL, endpoints, opts)
-		if resp.StatusCode == 429 {
-			time.Sleep(1 * time.Second)
-			return e.List(ctx, tenantID, tenantURL, endpoints, opts)
-		}
-		return rep, res, err
-
-	}
 
 	return &eps, responses, nil
 
