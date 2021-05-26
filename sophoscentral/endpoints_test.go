@@ -431,7 +431,10 @@ func TestEndpointService_Get(t *testing.T) {
 				t.Errorf("Get() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			assert.NotNil(t, res)
+			if res == nil {
+				assert.NotNil(t, res)
+				return
+			}
 			assert.Equal(t, tt.want, got)
 			assert.Equal(t, tt.wantStatusCode, res.StatusCode)
 		})

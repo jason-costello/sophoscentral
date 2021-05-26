@@ -87,7 +87,10 @@ func testURLParseError(t *testing.T, err error) {
 	if err == nil {
 		t.Errorf("Expected error to be returned")
 	}
-	if err, ok := err.(*url.Error); !ok || err.Op != "parse" {
+
+	var uErr *url.Error
+
+	if ok := errors.As(err, &uErr); !ok || uErr.Op != "parse" {
 		t.Errorf("Expected URL parse error, got %+v", err)
 	}
 }
@@ -112,25 +115,27 @@ func TestNewRequest_invalidJSON(t *testing.T) {
 	type T struct {
 		A map[interface{}]interface{}
 	}
-	_, err := c.NewRequest("GET", ".", nil, &T{})
+	_, err := c.NewRequest(context.TODO(), "GET", ".", nil, &T{})
 
 	if err == nil {
 		t.Error("Expected error to be returned.")
 	}
-	if err, ok := err.(*json.UnsupportedTypeError); !ok {
-		t.Errorf("Expected a JSON error; got %#v.", err)
+	var jErr *json.UnsupportedTypeError
+
+	if ok := errors.As(err, &jErr); !ok {
+		t.Errorf("Expected a JSON error; got %#v.", jErr)
 	}
 }
 
 func TestNewRequest_badURL(t *testing.T) {
 	c := NewClient(context.TODO(), nil, nil)
-	_, err := c.NewRequest("GET", ":", nil, nil)
+	_, err := c.NewRequest(context.TODO(), "GET", ":", nil, nil)
 	testURLParseError(t, err)
 }
 
 func TestNewRequest_badMethod(t *testing.T) {
 	c := NewClient(context.TODO(), nil, nil)
-	if _, err := c.NewRequest("BOGUS\nMETHOD", ".", nil, nil); err == nil {
+	if _, err := c.NewRequest(context.TODO(), "BOGUS\nMETHOD", ".", nil, nil); err == nil {
 		t.Fatal("NewRequest returned nil; expected error")
 	}
 }
@@ -140,7 +145,7 @@ func TestNewRequest_badMethod(t *testing.T) {
 func TestNewRequest_emptyUserAgent(t *testing.T) {
 	c := NewClient(context.TODO(), nil, nil)
 	c.UserAgent = ""
-	req, err := c.NewRequest("GET", ".", nil, nil)
+	req, err := c.NewRequest(context.TODO(), "GET", ".", nil, nil)
 	if err != nil {
 		t.Fatalf("NewRequest returned unexpected error: %v", err)
 	}
@@ -157,7 +162,7 @@ func TestNewRequest_emptyUserAgent(t *testing.T) {
 // subtle errors.
 func TestNewRequest_emptyBody(t *testing.T) {
 	c := NewClient(context.TODO(), nil, nil)
-	req, err := c.NewRequest("GET", ".", nil, nil)
+	req, err := c.NewRequest(context.TODO(), "GET", ".", nil, nil)
 	if err != nil {
 		t.Fatalf("NewRequest returned unexpected error: %v", err)
 	}
@@ -181,7 +186,7 @@ func TestNewRequest_errorForNoTrailingSlash(t *testing.T) {
 			t.Fatalf("url.Parse returned unexpected error: %v.", err)
 		}
 		c.BaseURL = u
-		if _, err := c.NewRequest(http.MethodGet, "test", nil, nil); test.wantError && err == nil {
+		if _, err := c.NewRequest(context.TODO(), http.MethodGet, "test", nil, nil); test.wantError && err == nil {
 			t.Fatalf("Expected error to be returned.")
 		} else if !test.wantError && err != nil {
 			t.Fatalf("NewRequest returned unexpected error: %v.", err)
@@ -222,12 +227,12 @@ func TestDo_nilContext(t *testing.T) {
 	client, _, _, teardown := setup()
 	defer teardown()
 
-	req, _ := client.NewRequest("GET", ".", nil, nil)
-	_, err := client.Do(context.TODO(), req, nil)
+	_, err := client.NewRequest(nil, "GET", ".", nil, nil)
 
-	if !errors.Is(err, errNonNilContext) {
-		t.Errorf("Expected context must be non-nil error")
-	}
+	// _,  := client.Do(context.TODO(), req, nil)
+
+	assert.Equal(t, err, errNonNilContext)
+
 }
 
 //func TestDo_httpError(t *testing.T) {
@@ -294,18 +299,19 @@ func TestCheckResponse(t *testing.T) {
 		StatusCode: http.StatusBadRequest,
 		Body:       ioutil.NopCloser(strings.NewReader(`{"message":"message-test check response body"}`)),
 	}
-	err := CheckResponse(res).(*SophosError)
 
-	if err == nil {
-		t.Errorf("Expected error response.")
+	var sophosError *SophosError
+	if ok := errors.As(CheckResponse(res), &sophosError); !ok {
+		t.Errorf("Expected error response., not SophosError type")
+
 	}
 
 	want := &SophosError{
 		Response: res,
 		Message:  "message-test check response body"}
 
-	if !errors.Is(err, want) {
-		t.Errorf("Error = %#v, want %#v", err, want)
+	if !errors.Is(sophosError, want) {
+		t.Errorf("Error = %#v, want %#v", sophosError, want)
 	}
 }
 
@@ -351,18 +357,18 @@ func TestCheckResponse_noBody(t *testing.T) {
 		StatusCode: http.StatusBadRequest,
 		Body:       ioutil.NopCloser(strings.NewReader("")),
 	}
-	err := CheckResponse(res).(*SophosError)
+	var jErr *json.SyntaxError
+	errors.As(CheckResponse(res), &jErr)
 
-	if err == nil {
+	if jErr == nil {
 		t.Errorf("Expected error response.")
 	}
 
-	want := &SophosError{
-		Response: res,
-	}
-	if !errors.Is(err, want) {
-		t.Errorf("Error = %#v, want %#v", err, want)
-	}
+	want := &json.SyntaxError{}
+	assert.IsType(t, want, jErr)
+	//if !errors.Is(err, want){
+	//	t.Errorf("Error = %#v, want %#v", err, want)
+	//}
 }
 
 func TestCheckResponse_unexpectedErrorStructure(t *testing.T) {
@@ -372,9 +378,11 @@ func TestCheckResponse_unexpectedErrorStructure(t *testing.T) {
 		StatusCode: http.StatusBadRequest,
 		Body:       ioutil.NopCloser(strings.NewReader(httpBody)),
 	}
-	err := CheckResponse(res).(*SophosError)
 
-	if err == nil {
+	var sophosError *SophosError
+	errors.As(CheckResponse(res), &sophosError)
+
+	if sophosError == nil {
 		t.Errorf("Expected error response.")
 	}
 
@@ -384,14 +392,14 @@ func TestCheckResponse_unexpectedErrorStructure(t *testing.T) {
 		Errors:   "",
 	}
 
-	if !errors.Is(err, want) {
-		t.Errorf(err.Error())
+	if !errors.Is(sophosError, want) {
+		t.Errorf(sophosError.Error())
 		t.Errorf(httpBody)
-		t.Errorf("Error = %#v, want %#v", err, want)
+		t.Errorf("Error = %#v, want %#v", sophosError, want)
 	}
-	data, err2 := ioutil.ReadAll(err.Response.Body)
+	data, err2 := ioutil.ReadAll(sophosError.Response.Body)
 	if err2 != nil {
-		t.Fatalf("failed to read response body: %v", err)
+		t.Fatalf("failed to read response body: %v", sophosError)
 	}
 	if got := string(data); got != httpBody {
 

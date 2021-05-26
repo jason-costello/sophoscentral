@@ -42,56 +42,13 @@ func (e *EndpointService) GetIsolationSettings(ctx context.Context, tenantID str
 
 	path := fmt.Sprintf("%sendpoints/%s/isolation", e.basePath, endpointID)
 
-	req, err := e.client.NewRequest("GET", path, &tenantURL, nil)
+	req, err := e.client.NewRequest(ctx, "GET", path, &tenantURL, nil)
 	if err != nil {
 		return nil, nil, err
 	}
 	req.Header.Set("X-Tenant-ID", tenantID)
 
 	tps := new(IsolationSettings)
-	resp, err := e.client.Do(ctx, req, tps)
-	if err != nil {
-		return nil, resp, err
-	}
-
-	return tps, resp, nil
-
-}
-
-// UpdateIsolationSetting for an endpoint.
-func (e *EndpointService) UpdateIsolationSetting(ctx context.Context, tenantID string, tenantURL BaseURL, endpointID string, update IsolationSettingsUpdate) (*IsolationSettings, *Response, error) {
-
-	path := fmt.Sprintf("%sendpoints/%s/isolation", e.basePath, endpointID)
-
-	req, err := e.client.NewRequest("PATCH", path, &tenantURL, update)
-	if err != nil {
-		return nil, nil, err
-	}
-	req.Header.Set("X-Tenant-ID", tenantID)
-
-	tps := new(IsolationSettings)
-	resp, err := e.client.Do(ctx, req, tps)
-	if err != nil {
-		return nil, resp, err
-	}
-
-	return tps, resp, nil
-
-}
-
-// ToggleIsolation Turn on or off endpoint isolation for multiple endpoints.
-// GetIsolationSettings for an endpoint.
-func (e *EndpointService) ToggleIsolation(ctx context.Context, tenantID string, tenantURL BaseURL, ti ToggleIsolations) (*ToggleIsolationSettings, *Response, error) {
-
-	path := "endpoints/isolation"
-
-	req, err := e.client.NewRequest("POST", path, &tenantURL, ti)
-	if err != nil {
-		return nil, nil, err
-	}
-	req.Header.Set("X-Tenant-ID", tenantID)
-
-	tps := new(ToggleIsolationSettings)
 	resp, err := e.client.Do(ctx, req, tps)
 	if err != nil {
 		return nil, resp, err

@@ -73,11 +73,12 @@ func RegionFromUrl(baseURL string, rMap map[Region]BaseURL) (Region, error) {
 }
 
 var errNonNilContext = errors.New("context must be non-nil")
+var errStringParse = errors.New("failed to parse string")
 
-var BaseURLString func(BaseURL) (string, error) = func(b BaseURL) (string, error) {
+func (b BaseURL) String() (string, error) {
 	u, err := url.Parse(string(b))
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("BaseURL.String(): %w", errStringParse)
 	}
 	return fmt.Sprintf("%s://%s/", u.Scheme, u.Host), nil
 }
@@ -153,7 +154,7 @@ func (c *Client) SetBaseURLFromString(s string) error {
 	s = EnsureTrailingSlash(s)
 	u, err := url.Parse(s)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to prase base url from string: %w", err)
 	}
 
 	c.BaseURL = u
@@ -197,12 +198,12 @@ func addOptions(s string, opts interface{}) (string, error) {
 
 	u, err := url.Parse(s)
 	if err != nil {
-		return s, err
+		return s, fmt.Errorf("unable to parse url from string: %w", err)
 	}
 
 	qs, err := query.Values(opts)
 	if err != nil {
-		return s, err
+		return s, fmt.Errorf("unable to extract query value from opts: %w", err)
 	}
 
 	u.RawQuery = qs.Encode()
@@ -227,12 +228,17 @@ func NewAuthToken(ctx context.Context, ar AuthRequest) (*oauth2.Token, error) {
 func NewAuthHttpClient(ctx context.Context, ar AuthRequest, token *oauth2.Token) *http.Client {
 
 	oauthConfig := oauth2.Config{
+		ClientID:     "",
+		ClientSecret: "",
 		Endpoint: oauth2.Endpoint{
+			AuthURL:   "",
 			TokenURL:  ar.TokenURL,
 			AuthStyle: ar.Style,
 		},
-		Scopes: ar.Scopes,
+		RedirectURL: "",
+		Scopes:      ar.Scopes,
 	}
+
 	return oauthConfig.Client(ctx, token)
 
 }
@@ -243,15 +249,13 @@ func NewClientNewAuth(ctx context.Context, ar AuthRequest, baseURL *url.URL) (*C
 	var err error
 	// get oauth token
 	if token, err = NewAuthToken(ctx, ar); err != nil {
-		fmt.Println("Failed to get new auth token.")
-		fmt.Println("ar: ", PrettyPrint(ar))
 		return nil, err
 	}
 
 	// get oauth httpClient
 	hc := NewAuthHttpClient(ctx, ar, token)
 
-	c := &Client{httpClient: hc, BaseURL: baseURL, UserAgent: userAgent}
+	c := &Client{ctx: ctx, httpClient: hc, BaseURL: baseURL, UserAgent: userAgent}
 	c.common.client = c
 	c.Common = (*CommonService)(&c.common)
 	c.Endpoints = (*EndpointService)(&c.common)
@@ -288,7 +292,7 @@ func NewClient(ctx context.Context, hc *http.Client, token *oauth2.Token) *Clien
 	}
 	//seems redundant, but ensuring that the base url passed in
 	// doesn't include any paths, just scheme + host
-	bURLStr, _ := BaseURLString(defaultBaseURL)
+	bURLStr, _ := defaultBaseURL.String()
 	baseURL, _ := url.Parse(bURLStr)
 	c := &Client{ctx: ctx, httpClient: hc, BaseURL: baseURL, UserAgent: userAgent}
 
@@ -317,8 +321,11 @@ func NewClient(ctx context.Context, hc *http.Client, token *oauth2.Token) *Clien
 //
 // If the baseURL passed in is different than the client baseURL, the passed in value is
 // used as the base for the included relativeURL.  This seems a bit hackey now.
-func (c *Client) NewRequest(method, relURL string, incomingBaseURL *BaseURL, body interface{}) (*http.Request, error) {
+func (c *Client) NewRequest(ctx context.Context, method, relURL string, incomingBaseURL *BaseURL, body interface{}) (*http.Request, error) {
 
+	if ctx == nil {
+		return nil, errNonNilContext
+	}
 	var burlStr string
 	if c == nil {
 		return nil, errors.New("client is nil inside client.NewRequest")
@@ -335,7 +342,7 @@ func (c *Client) NewRequest(method, relURL string, incomingBaseURL *BaseURL, bod
 		if *incomingBaseURL != "" {
 			//seems redundant, but ensuring that the base url passed in
 			// doesn't include any paths, just scheme + host
-			burlStr, err = BaseURLString(*incomingBaseURL)
+			burlStr, err = incomingBaseURL.String()
 			if err != nil {
 				return nil, err
 			}
@@ -345,7 +352,7 @@ func (c *Client) NewRequest(method, relURL string, incomingBaseURL *BaseURL, bod
 
 	bURL, err := url.Parse(burlStr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to parase url from string: %w", err)
 	}
 
 	if !strings.HasSuffix(bURL.Path, "/") {
@@ -353,7 +360,7 @@ func (c *Client) NewRequest(method, relURL string, incomingBaseURL *BaseURL, bod
 	}
 	u, err := bURL.Parse(relURL)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to parse url from string: %w", err)
 	}
 
 	var buf io.ReadWriter
@@ -363,13 +370,13 @@ func (c *Client) NewRequest(method, relURL string, incomingBaseURL *BaseURL, bod
 		enc.SetEscapeHTML(false)
 		err := enc.Encode(body)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unable to encode body: %w", err)
 		}
 	}
 
-	req, err := http.NewRequest(method, u.String(), buf)
+	req, err := http.NewRequestWithContext(ctx, method, u.String(), buf)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create new request with context: %w", err)
 	}
 
 	if body != nil {
@@ -477,28 +484,32 @@ func (c *Client) BareDo(ctx context.Context, req *http.Request) (*Response, erro
 		}
 
 		// If the error type is *url.Error, sanitize its URL before returning.
-		if e, ok := err.(*url.Error); ok {
-			if tURL, err := url.Parse(e.URL); err == nil {
-				e.URL = sanitizeURL(tURL).String()
-				return nil, e
+		var urlErr *url.Error
+		if ok := errors.As(err, &urlErr); ok {
+			if tURL, err := url.Parse(urlErr.URL); err == nil {
+				urlErr.URL = sanitizeURL(tURL).String()
+				return nil, urlErr
 			}
 		}
 
-		return nil, err
+		return nil, fmt.Errorf("httpClient.do failed to process request: %w", err)
 	}
 
 	response := newResponse(resp)
 
-	var sophosError *SophosError
-	var ok bool
+	sophosError := new(SophosError)
 	err = CheckResponse(resp)
 	if err != nil {
-		defer resp.Body.Close()
-		sophosError, ok = err.(*SophosError)
-		if !ok {
+		defer func(Body io.ReadCloser) {
+			err := Body.Close()
+			if err != nil {
+
+			}
+		}(resp.Body)
+		if ok := errors.As(err, &sophosError); ok {
 			b, readErr := ioutil.ReadAll(resp.Body)
 			if readErr != nil {
-				return response, readErr
+				return response, fmt.Errorf("unable to read resp body: %w", readErr)
 			}
 			err = errors.New(string(b))
 			return response, err
@@ -511,6 +522,9 @@ func (c *Client) BareDo(ctx context.Context, req *http.Request) (*Response, erro
 
 // Do -
 func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*Response, error) {
+	if ctx == nil {
+		return nil, errors.New("context must be non-nil")
+	}
 	resp, err := c.BareDo(ctx, req)
 
 	if err != nil {
@@ -520,6 +534,9 @@ func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*Res
 		}
 	}
 
+	if resp == nil {
+		return &Response{}, errors.New("nil response received")
+	}
 	defer resp.Body.Close()
 
 	switch v := v.(type) {
@@ -528,7 +545,8 @@ func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*Res
 		_, err = io.Copy(v, resp.Body)
 	default:
 		decErr := json.NewDecoder(resp.Body).Decode(v)
-		if decErr == io.EOF {
+
+		if errors.Is(decErr, io.EOF) {
 			decErr = nil // ignore EOF errors caused by empty response body
 		}
 		if decErr != nil {
@@ -569,6 +587,21 @@ type SophosError struct {
 }
 
 func (r *SophosError) Error() string {
+	if r == nil {
+		return "SophosError is nil"
+	}
+	if r.Response == nil {
+		return "no response found"
+	}
+
+	if r.Response.Request == nil {
+		return "no request in response found"
+	}
+
+	if r.Response.Request.URL == nil {
+		return fmt.Sprintf("%v: %d %v %+v",
+			r.Response.Request.Method, r.Response.StatusCode, r.Message, r.Errors)
+	}
 	return fmt.Sprintf("%v %v: %d %v %+v",
 		r.Response.Request.Method, sanitizeURL(r.Response.Request.URL),
 		r.Response.StatusCode, r.Message, r.Errors)
@@ -576,22 +609,22 @@ func (r *SophosError) Error() string {
 
 // Is returns whether the provided error equals this error.
 func (r *SophosError) Is(target error) bool {
-	v, ok := target.(*SophosError)
-	if !ok {
+	var sophosError *SophosError
+
+	if ok := errors.As(target, &sophosError); !ok {
 		return false
 	}
 
-	if r.Message != v.Message || (r.DocUrl != v.DocUrl) ||
-		!compareHttpResponse(r.Response, v.Response) {
+	if r.Message != sophosError.Message || (r.DocUrl != sophosError.DocUrl) || !compareHttpResponse(r.Response, sophosError.Response) {
 		return false
 	}
 
 	// Compare Errors.
-	if len(r.Errors) != len(v.Errors) {
+	if len(r.Errors) != len(sophosError.Errors) {
 		return false
 	}
 	for idx := range r.Errors {
-		if r.Errors[idx] != v.Errors[idx] {
+		if r.Errors[idx] != sophosError.Errors[idx] {
 			return false
 		}
 	}
@@ -620,13 +653,14 @@ func (r *RateLimitError) Error() string {
 
 // Is returns whether the provided error equals this error.
 func (r *RateLimitError) Is(target error) bool {
-	v, ok := target.(*RateLimitError)
-	if !ok {
+	var rlError *RateLimitError
+	if ok := errors.As(target, &rlError); !ok {
+
 		return false
 	}
-	return r.Message == v.Message &&
-		r.RetryAfter == v.RetryAfter &&
-		compareHttpResponse(r.Response, v.Response)
+	return r.Message == rlError.Message &&
+		r.RetryAfter == rlError.RetryAfter &&
+		compareHttpResponse(r.Response, rlError.Response)
 }
 
 // sanitizeURL redacts identifying information from the URLs in error messages
@@ -734,16 +768,16 @@ func CheckResponse(r *http.Response) error {
 	if err == nil && data != nil {
 		err := json.Unmarshal(data, errorResponse)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to unmarshal error response: %w", err)
 		}
 	}
 	// Re-populate error response body because Sophos Central error responses could be undocumented
 	r.Body = ioutil.NopCloser(bytes.NewBuffer(data))
-	switch {
-	case r.StatusCode == http.StatusUnauthorized:
+	switch r.StatusCode{
+	case  http.StatusUnauthorized:
 		return (*AuthenticationError)(errorResponse)
 
-	case r.StatusCode == http.StatusTooManyRequests:
+	case http.StatusTooManyRequests:
 		abuseRateLimitError := &RateLimitError{
 			Response: errorResponse.Response,
 			Message:  errorResponse.Message,
