@@ -2,33 +2,42 @@ name: Go
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, master ]
 
 jobs:
-
+  golangci:
+    strategy:
+      matrix:
+        go-version: [1.15.x, 1.16.x]
+        os: [ubuntu-latest]
+    name: lint
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          # Required: the version of golangci-lint is required and must be specified without patch version: we always use the latest patch version.
+          version: v1.29
   
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: [ '1.15', '1.16' ]
+    name: Go ${{ matrix.go }} Build
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
+      - name: Setup go
+        uses: actions/setup-go@v1
+        with:
+          go-version: ${{ matrix.go }}
+      - run: go build --race ./...
 
-    - name: Set up Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: 1.16
-    
-    - name: Super-Linter
-      uses: github/super-linter@v3.17.1
-      env:
-        VALIDATE_ALL_CODEBASE: false
-        DEFAULT_BRANCH: main
-        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-    
+      - name: Test
+        run: go test --race -v ./...
 
-    - name: Build
-      run: go build -v ./...
-
-    - name: Test
-      run: go test -v ./...
+      - name: Integration Test
+        run: go test --race ./... -tags=integration
